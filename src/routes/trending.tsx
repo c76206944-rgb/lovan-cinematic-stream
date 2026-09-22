@@ -1,0 +1,28 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { titles } from "@/data/titles";
+import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
+
+export const Route = createFileRoute("/trending")({
+  head: () => ({
+    meta: [
+      { title: "Trending | LOVAN" },
+      { name: "description", content: "The titles people are watching most on LOVAN right now." },
+      { property: "og:title", content: "Trending | LOVAN" },
+      { property: "og:description", content: "The most watched titles on LOVAN right now." },
+    ],
+  }),
+  component: TrendingPage,
+});
+
+function TrendingPage() {
+  const items = [...titles].sort((a, b) => b.rating - a.rating).slice(0, 12);
+  return (
+    <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
+      <PageHeading
+        title="Trending"
+        description="What audiences are watching most this week, across every region where rights allow."
+      />
+      <TitleGrid items={items} />
+    </div>
+  );
+}
