@@ -10,22 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
+import { Route as CreatorHubRouteImport } from './routes/creator-hub'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as GenresRouteImport } from './routes/genres'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as MoviesRouteImport } from './routes/movies'
 import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as NewReleasesRouteImport } from './routes/new-releases'
 import { Route as PremiumRouteImport } from './routes/premium'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SeriesRouteImport } from './routes/series'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as TitleTitleIdRouteImport } from './routes/title.$titleId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiePolicyRoute = CookiePolicyRouteImport.update({
+  id: '/cookie-policy',
+  path: '/cookie-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatorHubRoute = CreatorHubRouteImport.update({
+  id: '/creator-hub',
+  path: '/creator-hub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -36,6 +57,11 @@ const ExploreRoute = ExploreRouteImport.update({
 const GenresRoute = GenresRouteImport.update({
   id: '/genres',
   path: '/genres',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -63,6 +89,11 @@ const PremiumRoute = PremiumRouteImport.update({
   path: '/premium',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -78,6 +109,11 @@ const SeriesRoute = SeriesRouteImport.update({
   path: '/series',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrendingRoute = TrendingRouteImport.update({
   id: '/trending',
   path: '/trending',
@@ -91,47 +127,65 @@ const TitleTitleIdRoute = TitleTitleIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
+  '/creator-hub': typeof CreatorHubRoute
   '/explore': typeof ExploreRoute
   '/genres': typeof GenresRoute
+  '/help': typeof HelpRoute
   '/home': typeof HomeRoute
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
   '/premium': typeof PremiumRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/series': typeof SeriesRoute
+  '/terms': typeof TermsRoute
   '/trending': typeof TrendingRoute
   '/title/$titleId': typeof TitleTitleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
+  '/creator-hub': typeof CreatorHubRoute
   '/explore': typeof ExploreRoute
   '/genres': typeof GenresRoute
+  '/help': typeof HelpRoute
   '/home': typeof HomeRoute
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
   '/premium': typeof PremiumRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/series': typeof SeriesRoute
+  '/terms': typeof TermsRoute
   '/trending': typeof TrendingRoute
   '/title/$titleId': typeof TitleTitleIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/contact': typeof ContactRoute
+  '/cookie-policy': typeof CookiePolicyRoute
+  '/creator-hub': typeof CreatorHubRoute
   '/explore': typeof ExploreRoute
   '/genres': typeof GenresRoute
+  '/help': typeof HelpRoute
   '/home': typeof HomeRoute
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
   '/premium': typeof PremiumRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/series': typeof SeriesRoute
+  '/terms': typeof TermsRoute
   '/trending': typeof TrendingRoute
   '/title/$titleId': typeof TitleTitleIdRoute
 }
@@ -139,62 +193,86 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/contact'
+    | '/cookie-policy'
+    | '/creator-hub'
     | '/explore'
     | '/genres'
+    | '/help'
     | '/home'
     | '/movies'
     | '/my-list'
     | '/new-releases'
     | '/premium'
+    | '/privacy'
     | '/profile'
     | '/search'
     | '/series'
+    | '/terms'
     | '/trending'
     | '/title/$titleId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/contact'
+    | '/cookie-policy'
+    | '/creator-hub'
     | '/explore'
     | '/genres'
+    | '/help'
     | '/home'
     | '/movies'
     | '/my-list'
     | '/new-releases'
     | '/premium'
+    | '/privacy'
     | '/profile'
     | '/search'
     | '/series'
+    | '/terms'
     | '/trending'
     | '/title/$titleId'
   id:
     | '__root__'
     | '/'
+    | '/contact'
+    | '/cookie-policy'
+    | '/creator-hub'
     | '/explore'
     | '/genres'
+    | '/help'
     | '/home'
     | '/movies'
     | '/my-list'
     | '/new-releases'
     | '/premium'
+    | '/privacy'
     | '/profile'
     | '/search'
     | '/series'
+    | '/terms'
     | '/trending'
     | '/title/$titleId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ContactRoute: typeof ContactRoute
+  CookiePolicyRoute: typeof CookiePolicyRoute
+  CreatorHubRoute: typeof CreatorHubRoute
   ExploreRoute: typeof ExploreRoute
   GenresRoute: typeof GenresRoute
+  HelpRoute: typeof HelpRoute
   HomeRoute: typeof HomeRoute
   MoviesRoute: typeof MoviesRoute
   MyListRoute: typeof MyListRoute
   NewReleasesRoute: typeof NewReleasesRoute
   PremiumRoute: typeof PremiumRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
   SeriesRoute: typeof SeriesRoute
+  TermsRoute: typeof TermsRoute
   TrendingRoute: typeof TrendingRoute
   TitleTitleIdRoute: typeof TitleTitleIdRoute
 }
@@ -206,6 +284,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookie-policy': {
+      id: '/cookie-policy'
+      path: '/cookie-policy'
+      fullPath: '/cookie-policy'
+      preLoaderRoute: typeof CookiePolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creator-hub': {
+      id: '/creator-hub'
+      path: '/creator-hub'
+      fullPath: '/creator-hub'
+      preLoaderRoute: typeof CreatorHubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -220,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/genres'
       fullPath: '/genres'
       preLoaderRoute: typeof GenresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -257,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PremiumRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -278,6 +391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SeriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trending': {
       id: '/trending'
       path: '/trending'
@@ -297,16 +417,22 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ContactRoute: ContactRoute,
+  CookiePolicyRoute: CookiePolicyRoute,
+  CreatorHubRoute: CreatorHubRoute,
   ExploreRoute: ExploreRoute,
   GenresRoute: GenresRoute,
+  HelpRoute: HelpRoute,
   HomeRoute: HomeRoute,
   MoviesRoute: MoviesRoute,
   MyListRoute: MyListRoute,
   NewReleasesRoute: NewReleasesRoute,
   PremiumRoute: PremiumRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
   SeriesRoute: SeriesRoute,
+  TermsRoute: TermsRoute,
   TrendingRoute: TrendingRoute,
   TitleTitleIdRoute: TitleTitleIdRoute,
 }
