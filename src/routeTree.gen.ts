@@ -10,7 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as GenresRouteImport } from './routes/genres'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as MoviesRouteImport } from './routes/movies'
+import { Route as MyListRouteImport } from './routes/my-list'
+import { Route as NewReleasesRouteImport } from './routes/new-releases'
+import { Route as PremiumRouteImport } from './routes/premium'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as SeriesRouteImport } from './routes/series'
+import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as TitleTitleIdRouteImport } from './routes/title.$titleId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +28,59 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GenresRoute = GenresRouteImport.update({
+  id: '/genres',
+  path: '/genres',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MoviesRoute = MoviesRouteImport.update({
+  id: '/movies',
+  path: '/movies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyListRoute = MyListRouteImport.update({
+  id: '/my-list',
+  path: '/my-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewReleasesRoute = NewReleasesRouteImport.update({
+  id: '/new-releases',
+  path: '/new-releases',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PremiumRoute = PremiumRouteImport.update({
+  id: '/premium',
+  path: '/premium',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeriesRoute = SeriesRouteImport.update({
+  id: '/series',
+  path: '/series',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrendingRoute = TrendingRouteImport.update({
+  id: '/trending',
+  path: '/trending',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TitleTitleIdRoute = TitleTitleIdRouteImport.update({
@@ -31,31 +91,111 @@ const TitleTitleIdRoute = TitleTitleIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/explore': typeof ExploreRoute
+  '/genres': typeof GenresRoute
   '/home': typeof HomeRoute
+  '/movies': typeof MoviesRoute
+  '/my-list': typeof MyListRoute
+  '/new-releases': typeof NewReleasesRoute
+  '/premium': typeof PremiumRoute
+  '/profile': typeof ProfileRoute
+  '/search': typeof SearchRoute
+  '/series': typeof SeriesRoute
+  '/trending': typeof TrendingRoute
   '/title/$titleId': typeof TitleTitleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/explore': typeof ExploreRoute
+  '/genres': typeof GenresRoute
   '/home': typeof HomeRoute
+  '/movies': typeof MoviesRoute
+  '/my-list': typeof MyListRoute
+  '/new-releases': typeof NewReleasesRoute
+  '/premium': typeof PremiumRoute
+  '/profile': typeof ProfileRoute
+  '/search': typeof SearchRoute
+  '/series': typeof SeriesRoute
+  '/trending': typeof TrendingRoute
   '/title/$titleId': typeof TitleTitleIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/explore': typeof ExploreRoute
+  '/genres': typeof GenresRoute
   '/home': typeof HomeRoute
+  '/movies': typeof MoviesRoute
+  '/my-list': typeof MyListRoute
+  '/new-releases': typeof NewReleasesRoute
+  '/premium': typeof PremiumRoute
+  '/profile': typeof ProfileRoute
+  '/search': typeof SearchRoute
+  '/series': typeof SeriesRoute
+  '/trending': typeof TrendingRoute
   '/title/$titleId': typeof TitleTitleIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/home' | '/title/$titleId'
+  fullPaths:
+    | '/'
+    | '/explore'
+    | '/genres'
+    | '/home'
+    | '/movies'
+    | '/my-list'
+    | '/new-releases'
+    | '/premium'
+    | '/profile'
+    | '/search'
+    | '/series'
+    | '/trending'
+    | '/title/$titleId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/home' | '/title/$titleId'
-  id: '__root__' | '/' | '/home' | '/title/$titleId'
+  to:
+    | '/'
+    | '/explore'
+    | '/genres'
+    | '/home'
+    | '/movies'
+    | '/my-list'
+    | '/new-releases'
+    | '/premium'
+    | '/profile'
+    | '/search'
+    | '/series'
+    | '/trending'
+    | '/title/$titleId'
+  id:
+    | '__root__'
+    | '/'
+    | '/explore'
+    | '/genres'
+    | '/home'
+    | '/movies'
+    | '/my-list'
+    | '/new-releases'
+    | '/premium'
+    | '/profile'
+    | '/search'
+    | '/series'
+    | '/trending'
+    | '/title/$titleId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ExploreRoute: typeof ExploreRoute
+  GenresRoute: typeof GenresRoute
   HomeRoute: typeof HomeRoute
+  MoviesRoute: typeof MoviesRoute
+  MyListRoute: typeof MyListRoute
+  NewReleasesRoute: typeof NewReleasesRoute
+  PremiumRoute: typeof PremiumRoute
+  ProfileRoute: typeof ProfileRoute
+  SearchRoute: typeof SearchRoute
+  SeriesRoute: typeof SeriesRoute
+  TrendingRoute: typeof TrendingRoute
   TitleTitleIdRoute: typeof TitleTitleIdRoute
 }
 
@@ -68,11 +208,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/genres': {
+      id: '/genres'
+      path: '/genres'
+      fullPath: '/genres'
+      preLoaderRoute: typeof GenresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/home': {
       id: '/home'
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/movies': {
+      id: '/movies'
+      path: '/movies'
+      fullPath: '/movies'
+      preLoaderRoute: typeof MoviesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-list': {
+      id: '/my-list'
+      path: '/my-list'
+      fullPath: '/my-list'
+      preLoaderRoute: typeof MyListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/new-releases': {
+      id: '/new-releases'
+      path: '/new-releases'
+      fullPath: '/new-releases'
+      preLoaderRoute: typeof NewReleasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/premium': {
+      id: '/premium'
+      path: '/premium'
+      fullPath: '/premium'
+      preLoaderRoute: typeof PremiumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/series': {
+      id: '/series'
+      path: '/series'
+      fullPath: '/series'
+      preLoaderRoute: typeof SeriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trending': {
+      id: '/trending'
+      path: '/trending'
+      fullPath: '/trending'
+      preLoaderRoute: typeof TrendingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/title/$titleId': {
@@ -87,7 +297,17 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ExploreRoute: ExploreRoute,
+  GenresRoute: GenresRoute,
   HomeRoute: HomeRoute,
+  MoviesRoute: MoviesRoute,
+  MyListRoute: MyListRoute,
+  NewReleasesRoute: NewReleasesRoute,
+  PremiumRoute: PremiumRoute,
+  ProfileRoute: ProfileRoute,
+  SearchRoute: SearchRoute,
+  SeriesRoute: SeriesRoute,
+  TrendingRoute: TrendingRoute,
   TitleTitleIdRoute: TitleTitleIdRoute,
 }
 export const routeTree = rootRouteImport
