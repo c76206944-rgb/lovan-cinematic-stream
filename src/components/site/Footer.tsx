@@ -32,6 +32,9 @@ export function Footer() {
             </Link>
           ))}
         </div>
+        <p className="mt-6 max-w-3xl text-xs leading-relaxed text-muted-foreground">
+          Disclaimer: LOVAN does not own the films and series shown here. They come from different sources, and all rights belong to their respective owners. If you own a title and want it removed, use Request removal.
+        </p>
       </div>
     </footer>
   );

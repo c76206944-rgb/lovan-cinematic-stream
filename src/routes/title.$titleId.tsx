@@ -103,7 +103,7 @@ function DownloadButton({ title }: { title: ViewTitle }) {
     try {
       const { url } = await getUrl({ data: { id: title.id } });
       const blob = await downloadToApp(url, setPct);
-      await saveOffline({ id: title.id, name: title.name, bytes: blob.size, savedAt: Date.now(), blob });
+      await saveOffline({ id: title.id, name: title.name, blob });
       setState("saved");
     } catch (e) {
       setState("idle");
