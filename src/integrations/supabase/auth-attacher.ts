@@ -22,7 +22,7 @@ export const attachSupabaseAuth = createMiddleware({ type: 'function' }).client(
       // fallback to whatever session is in memory
     }
     return next({
-      headers: token ? { Authorization:  } : {},
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
   },
 )
