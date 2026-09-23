@@ -7,6 +7,9 @@ import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
 
 export const Route = createFileRoute("/_authenticated/admin_/catalog")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: typeof search.edit === "string" ? search.edit : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Catalogue editor | LOVAN" },
@@ -61,6 +64,7 @@ function statusOf(r: Row) {
 
 function CatalogPage() {
   const account = useAccount();
+  const search = Route.useSearch();
   const save = useServerFn(saveTitle);
   const setStatus = useServerFn(setTitleStatus);
   const remove = useServerFn(deleteTitle);
@@ -80,6 +84,12 @@ function CatalogPage() {
   useEffect(() => {
     if (account.staff) void load();
   }, [account.staff, load]);
+
+  useEffect(() => {
+    if (!search.edit || editing) return;
+    const requested = rows.find((row) => row.id === search.edit);
+    if (requested) setEditing(requested);
+  }, [editing, rows, search.edit]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -181,7 +191,7 @@ function CatalogPage() {
           <p className={`mt-4 text-sm ${message.error ? "text-primary" : "text-muted-foreground"}`}>{message.text}</p>
         ) : null}
 
-        <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+        <div className="mt-4 hidden overflow-x-auto rounded-lg border border-border md:block">
           <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase tracking-wide text-muted-foreground">
               <tr className="border-b border-border">
@@ -241,6 +251,34 @@ function CatalogPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-4 space-y-3 md:hidden">
+          {visible.length === 0 ? <p className="text-sm text-muted-foreground">No titles match.</p> : null}
+          {visible.map((r) => (
+            <article key={r.id} className="rounded-lg border border-border p-4">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="break-words text-sm font-medium text-foreground">{r.name}</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {r.kind === "series" ? `${r.series_name || "Series"} S${r.season ?? "?"} E${r.episode ?? "?"}` : "Film"}
+                  </p>
+                </div>
+                <span className={`shrink-0 text-xs ${statusOf(r) === "Published" ? "text-primary" : "text-muted-foreground"}`}>{statusOf(r)}</span>
+              </div>
+              <p className="mt-2 break-words text-xs text-muted-foreground">{r.genres.join(", ") || "Genres not set"}</p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <ActionButton disabled={busy === r.id} onClick={() => setEditing(r)}>Edit</ActionButton>
+                {r.archived ? (
+                  <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => setStatus({ data: { id: r.id, action: "restore" } }), "Restored as a draft.")}>Restore</ActionButton>
+                ) : r.published ? (
+                  <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => setStatus({ data: { id: r.id, action: "unpublish" } }), "Unpublished.")}>Unpublish</ActionButton>
+                ) : (
+                  <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => setStatus({ data: { id: r.id, action: "publish" } }), "Published.")}>Publish</ActionButton>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
 
         {editing ? (
