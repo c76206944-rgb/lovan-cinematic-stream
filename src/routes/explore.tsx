@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { collapseSeries, matchesSearch, uniq } from "@/data/titles";
+import { collapseSeries, uniq } from "@/data/titles";
 import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/explore")({
   component: ExplorePage,
 });
 
-const kinds = ["all", "movie", "series", "documentary", "short"] as const;
+const kinds = ["all", "movie", "series"] as const;
 
 function ExplorePage() {
   const { titles: all } = useCatalog();

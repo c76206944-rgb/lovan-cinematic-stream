@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { collapseSeries, matchesSearch, uniq } from "@/data/titles";
+import {  } from "@/data/titles";
 import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 

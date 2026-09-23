@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { collapseSeries, matchesSearch, uniq } from "@/data/titles";
+import { collapseSeries } from "@/data/titles";
 import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
@@ -23,7 +23,7 @@ function MyListPage() {
     <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
       <PageHeading
         title="My List"
-        description="Everything you saved for later. This demo list is filled with sample titles."
+        description="Everything you saved for later. New uploads are shown here until saving to your list is ready."
       />
       <TitleGrid items={items} />
     </div>
