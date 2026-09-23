@@ -20,6 +20,7 @@ export type Database = {
           ad_enabled: boolean
           ad_notes: string
           ad_placements: string[]
+          archived: boolean
           cast_members: string[]
           country: string
           created_at: string
@@ -33,13 +34,17 @@ export type Database = {
           language: string
           maturity: string
           name: string
+          poster_height: number | null
           poster_url: string | null
+          poster_width: number | null
           premium: boolean
           published: boolean
           runtime: string
           season: number | null
           series_name: string
           synopsis: string
+          updated_at: string
+          video_bytes: number | null
           video_path: string | null
           year: number
         }
@@ -48,6 +53,7 @@ export type Database = {
           ad_enabled?: boolean
           ad_notes?: string
           ad_placements?: string[]
+          archived?: boolean
           cast_members?: string[]
           country?: string
           created_at?: string
@@ -61,13 +67,17 @@ export type Database = {
           language?: string
           maturity?: string
           name: string
+          poster_height?: number | null
           poster_url?: string | null
+          poster_width?: number | null
           premium?: boolean
           published?: boolean
           runtime?: string
           season?: number | null
           series_name?: string
           synopsis?: string
+          updated_at?: string
+          video_bytes?: number | null
           video_path?: string | null
           year?: number
         }
@@ -76,6 +86,7 @@ export type Database = {
           ad_enabled?: boolean
           ad_notes?: string
           ad_placements?: string[]
+          archived?: boolean
           cast_members?: string[]
           country?: string
           created_at?: string
@@ -89,13 +100,17 @@ export type Database = {
           language?: string
           maturity?: string
           name?: string
+          poster_height?: number | null
           poster_url?: string | null
+          poster_width?: number | null
           premium?: boolean
           published?: boolean
           runtime?: string
           season?: number | null
           series_name?: string
           synopsis?: string
+          updated_at?: string
+          video_bytes?: number | null
           video_path?: string | null
           year?: number
         }
@@ -127,6 +142,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_storage_stats: {
+        Args: never
+        Returns: {
+          bytes: number
+          files: number
+          folder: string
+        }[]
+      }
       claim_owner_admin: { Args: never; Returns: boolean }
       has_role: {
         Args: {
