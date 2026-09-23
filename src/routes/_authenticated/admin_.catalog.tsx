@@ -48,6 +48,7 @@ type Row = {
   ad_cues: string;
   ad_notes: string;
   video_path: string | null;
+  poster_url: string | null;
   updated_at: string;
 };
 
