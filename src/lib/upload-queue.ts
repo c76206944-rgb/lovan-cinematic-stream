@@ -225,6 +225,7 @@ async function upload(job: Job): Promise<string> {
   if (!token) throw new Error("Your session has ended. Sign in again.");
   const base = import.meta.env["VITE_SUPABASE_URL"] as string;
   const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
+  const tus = await loadTus();
   await new Promise<void>((resolve, reject) => {
     const up = new tus.Upload(job.file, {
       endpoint: `${base}/storage/v1/upload/resumable`,
