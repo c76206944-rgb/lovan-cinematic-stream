@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { plans } from "@/data/titles";
 import { PageHeading } from "@/components/site/TitleGrid";
@@ -43,12 +43,12 @@ function PremiumPage() {
                 </li>
               ))}
             </ul>
-            <button
-              type="button"
-              className="mt-6 w-full rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            <Link
+              to="/donate"
+              className="mt-6 block w-full rounded-md bg-primary px-4 py-2.5 text-center text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Choose {plan.name}
-            </button>
+              Donate for {plan.name}
+            </Link>
           </div>
         ))}
       </div>

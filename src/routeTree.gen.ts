@@ -14,7 +14,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
-import { Route as CreatorHubRouteImport } from './routes/creator-hub'
+import { Route as DonateRouteImport } from './routes/donate'
+import { Route as DownloadsRouteImport } from './routes/downloads'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ForYouRouteImport } from './routes/for-you'
 import { Route as GenresRouteImport } from './routes/genres'
@@ -26,6 +27,8 @@ import { Route as NewReleasesRouteImport } from './routes/new-releases'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as RemovalRequestRouteImport } from './routes/removal-request'
+import { Route as RequestsRouteImport } from './routes/requests'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SeriesRouteImport } from './routes/series'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -59,9 +62,14 @@ const CookiePolicyRoute = CookiePolicyRouteImport.update({
   path: '/cookie-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CreatorHubRoute = CreatorHubRouteImport.update({
-  id: '/creator-hub',
-  path: '/creator-hub',
+const DonateRoute = DonateRouteImport.update({
+  id: '/donate',
+  path: '/donate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadsRoute = DownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExploreRoute = ExploreRouteImport.update({
@@ -119,6 +127,16 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RemovalRequestRoute = RemovalRequestRouteImport.update({
+  id: '/removal-request',
+  path: '/removal-request',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RequestsRoute = RequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -167,7 +185,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
-  '/creator-hub': typeof CreatorHubRoute
+  '/donate': typeof DonateRoute
+  '/downloads': typeof DownloadsRoute
   '/explore': typeof ExploreRoute
   '/for-you': typeof ForYouRoute
   '/genres': typeof GenresRoute
@@ -179,6 +198,8 @@ export interface FileRoutesByFullPath {
   '/premium': typeof PremiumRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/removal-request': typeof RemovalRequestRoute
+  '/requests': typeof RequestsRoute
   '/search': typeof SearchRoute
   '/series': typeof SeriesRoute
   '/terms': typeof TermsRoute
@@ -193,7 +214,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
-  '/creator-hub': typeof CreatorHubRoute
+  '/donate': typeof DonateRoute
+  '/downloads': typeof DownloadsRoute
   '/explore': typeof ExploreRoute
   '/for-you': typeof ForYouRoute
   '/genres': typeof GenresRoute
@@ -205,6 +227,8 @@ export interface FileRoutesByTo {
   '/premium': typeof PremiumRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/removal-request': typeof RemovalRequestRoute
+  '/requests': typeof RequestsRoute
   '/search': typeof SearchRoute
   '/series': typeof SeriesRoute
   '/terms': typeof TermsRoute
@@ -221,7 +245,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
-  '/creator-hub': typeof CreatorHubRoute
+  '/donate': typeof DonateRoute
+  '/downloads': typeof DownloadsRoute
   '/explore': typeof ExploreRoute
   '/for-you': typeof ForYouRoute
   '/genres': typeof GenresRoute
@@ -233,6 +258,8 @@ export interface FileRoutesById {
   '/premium': typeof PremiumRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/removal-request': typeof RemovalRequestRoute
+  '/requests': typeof RequestsRoute
   '/search': typeof SearchRoute
   '/series': typeof SeriesRoute
   '/terms': typeof TermsRoute
@@ -249,7 +276,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/cookie-policy'
-    | '/creator-hub'
+    | '/donate'
+    | '/downloads'
     | '/explore'
     | '/for-you'
     | '/genres'
@@ -261,6 +289,8 @@ export interface FileRouteTypes {
     | '/premium'
     | '/privacy'
     | '/profile'
+    | '/removal-request'
+    | '/requests'
     | '/search'
     | '/series'
     | '/terms'
@@ -275,7 +305,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/cookie-policy'
-    | '/creator-hub'
+    | '/donate'
+    | '/downloads'
     | '/explore'
     | '/for-you'
     | '/genres'
@@ -287,6 +318,8 @@ export interface FileRouteTypes {
     | '/premium'
     | '/privacy'
     | '/profile'
+    | '/removal-request'
+    | '/requests'
     | '/search'
     | '/series'
     | '/terms'
@@ -302,7 +335,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/cookie-policy'
-    | '/creator-hub'
+    | '/donate'
+    | '/downloads'
     | '/explore'
     | '/for-you'
     | '/genres'
@@ -314,6 +348,8 @@ export interface FileRouteTypes {
     | '/premium'
     | '/privacy'
     | '/profile'
+    | '/removal-request'
+    | '/requests'
     | '/search'
     | '/series'
     | '/terms'
@@ -330,7 +366,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   CookiePolicyRoute: typeof CookiePolicyRoute
-  CreatorHubRoute: typeof CreatorHubRoute
+  DonateRoute: typeof DonateRoute
+  DownloadsRoute: typeof DownloadsRoute
   ExploreRoute: typeof ExploreRoute
   ForYouRoute: typeof ForYouRoute
   GenresRoute: typeof GenresRoute
@@ -342,6 +379,8 @@ export interface RootRouteChildren {
   PremiumRoute: typeof PremiumRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
+  RemovalRequestRoute: typeof RemovalRequestRoute
+  RequestsRoute: typeof RequestsRoute
   SearchRoute: typeof SearchRoute
   SeriesRoute: typeof SeriesRoute
   TermsRoute: typeof TermsRoute
@@ -386,11 +425,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CookiePolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/creator-hub': {
-      id: '/creator-hub'
-      path: '/creator-hub'
-      fullPath: '/creator-hub'
-      preLoaderRoute: typeof CreatorHubRouteImport
+    '/donate': {
+      id: '/donate'
+      path: '/donate'
+      fullPath: '/donate'
+      preLoaderRoute: typeof DonateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/downloads': {
+      id: '/downloads'
+      path: '/downloads'
+      fullPath: '/downloads'
+      preLoaderRoute: typeof DownloadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore': {
@@ -468,6 +514,20 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/removal-request': {
+      id: '/removal-request'
+      path: '/removal-request'
+      fullPath: '/removal-request'
+      preLoaderRoute: typeof RemovalRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/requests': {
+      id: '/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof RequestsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -550,7 +610,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   CookiePolicyRoute: CookiePolicyRoute,
-  CreatorHubRoute: CreatorHubRoute,
+  DonateRoute: DonateRoute,
+  DownloadsRoute: DownloadsRoute,
   ExploreRoute: ExploreRoute,
   ForYouRoute: ForYouRoute,
   GenresRoute: GenresRoute,
@@ -562,6 +623,8 @@ const rootRouteChildren: RootRouteChildren = {
   PremiumRoute: PremiumRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
+  RemovalRequestRoute: RemovalRequestRoute,
+  RequestsRoute: RequestsRoute,
   SearchRoute: SearchRoute,
   SeriesRoute: SeriesRoute,
   TermsRoute: TermsRoute,

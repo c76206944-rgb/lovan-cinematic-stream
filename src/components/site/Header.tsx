@@ -12,6 +12,7 @@ const desktopLinks = [
   { to: "/trending", label: "Trending" },
   { to: "/for-you", label: "For You" },
   { to: "/my-list", label: "My List" },
+  { to: "/requests", label: "Requests" },
 ] as const;
 
 const mobileLinks = [
@@ -53,10 +54,10 @@ export function Header() {
             <Search className="size-4" strokeWidth={1.5} />
           </Link>
           <Link
-            to="/premium"
+            to="/donate"
             className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Premium
+            Donate
           </Link>
           {account.staff ? (
             <Link to="/admin" className="hidden rounded-md border border-border px-3 py-2 text-sm text-foreground transition-colors hover:border-primary sm:inline-block">

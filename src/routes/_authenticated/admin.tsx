@@ -90,6 +90,7 @@ function AdminPage() {
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [enriching, setEnriching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -166,8 +167,12 @@ function AdminPage() {
       setLanguage(result.language);
       setRuntime(result.runtime);
       setMaturity(result.maturity);
-      setYear(String(result.year));
-      setStatus("Details filled in. Edit anything before you save.");
+      setYear(result.year ? String(result.year) : "");
+      setStatus(
+        result.recognized && result.confidence === "high"
+          ? "Details filled in from a known title. Check them before you save."
+          : "The AI did not confidently recognize this title, so it only used your notes. Fill in cast, director and year yourself, or add more notes (year, country, a lead actor) and try again.",
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not fill in the details.");
     } finally {
@@ -175,13 +180,32 @@ function AdminPage() {
     }
   };
 
-  const uploadFile = async (file: File, folder: string) => {
+  const uploadFile = async (file: File, folder: string, onProgress: (n: number) => void) => {
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${folder}/${Date.now()}-${safe}`;
-    const { error: uploadError } = await supabase.storage
-      .from("media")
-      .upload(path, file, { cacheControl: "3600", upsert: false });
-    if (uploadError) throw new Error(uploadError.message);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) throw new Error("Your session has ended. Sign in again.");
+    const base = import.meta.env["VITE_SUPABASE_URL"] as string;
+    const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${base}/storage/v1/object/media/${path}`);
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.setRequestHeader("apikey", key);
+      xhr.setRequestHeader("x-upsert", "false");
+      xhr.setRequestHeader("cache-control", "3600");
+      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () =>
+        xhr.status >= 200 && xhr.status < 300
+          ? resolve()
+          : reject(new Error(`Upload failed (${xhr.status}). ${xhr.responseText.slice(0, 160)}`));
+      xhr.onerror = () => reject(new Error("Upload failed. Check your connection."));
+      xhr.send(file);
+    });
     return path;
   };
 
@@ -199,8 +223,17 @@ function AdminPage() {
       let posterPath: string | null = null;
       if (videoFile || posterFile) {
         setUploading(true);
-        if (videoFile) videoPath = await uploadFile(videoFile, "videos");
-        if (posterFile) posterPath = await uploadFile(posterFile, "posters");
+        setProgress(0);
+        const vSize = videoFile?.size ?? 0;
+        const pSize = posterFile?.size ?? 0;
+        let vDone = 0;
+        let pDone = 0;
+        const report = () =>
+          setProgress(Math.round((vDone * vSize + pDone * pSize) / Math.max(1, vSize + pSize)));
+        [videoPath, posterPath] = await Promise.all([
+          videoFile ? uploadFile(videoFile, "videos", (n) => { vDone = n; report(); }) : Promise.resolve(null),
+          posterFile ? uploadFile(posterFile, "posters", (n) => { pDone = n; report(); }) : Promise.resolve(null),
+        ]);
         setUploading(false);
       }
 
@@ -515,7 +548,14 @@ function AdminPage() {
                 />
               ) : null}
               {uploading ? (
-                <p className="text-xs text-muted-foreground">Uploading files.</p>
+                <div className="space-y-1">
+                  <div className="h-1.5 w-full overflow-hidden rounded-sm bg-surface">
+                    <div className="h-full bg-primary transition-[width]" style={{ width: `${progress}%` }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Uploading files. {progress}%</p>
+                </div>
+              ) : saving ? (
+                <p className="text-xs text-muted-foreground">Checking files and saving.</p>
               ) : null}
             </div>
           </section>

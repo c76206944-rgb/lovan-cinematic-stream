@@ -21,7 +21,7 @@ export const Route = createFileRoute("/contact")({
         },
         {
           heading: "Filmmakers and rights holders",
-          body: "For submissions, licensing and territory questions, see the Creator Hub and write to the licensing team.",
+          body: "For licensing and territory questions, write to the licensing team. To take a title down, use the Request removal page.",
         },
         {
           heading: "Press",
