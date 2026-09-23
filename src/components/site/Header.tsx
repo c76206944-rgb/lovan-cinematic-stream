@@ -9,6 +9,7 @@ const desktopLinks = [
   { to: "/genres", label: "Genres" },
   { to: "/new-releases", label: "New Releases" },
   { to: "/trending", label: "Trending" },
+  { to: "/for-you", label: "For You" },
   { to: "/my-list", label: "My List" },
 ] as const;
 
