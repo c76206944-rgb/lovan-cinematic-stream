@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { titles } from "@/data/titles";
+import { collapseSeries, matchesSearch, uniq } from "@/data/titles";
+import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
 export const Route = createFileRoute("/search")({
@@ -16,6 +17,8 @@ export const Route = createFileRoute("/search")({
 });
 
 function SearchPage() {
+  const { titles: all } = useCatalog();
+  const titles = collapseSeries(all);
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const items = q

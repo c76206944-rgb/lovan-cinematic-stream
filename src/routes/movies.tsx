@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { titles } from "@/data/titles";
+import { collapseSeries, matchesSearch, uniq } from "@/data/titles";
+import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
 export const Route = createFileRoute("/movies")({
@@ -18,6 +19,8 @@ export const Route = createFileRoute("/movies")({
 });
 
 function MoviesPage() {
+  const { titles: all } = useCatalog();
+  const titles = collapseSeries(all);
   const items = titles.filter((t) => t.kind === "movie");
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">

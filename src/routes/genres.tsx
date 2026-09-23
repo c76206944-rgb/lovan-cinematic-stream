@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { genres, titles } from "@/data/titles";
+import { collapseSeries, matchesSearch, uniq } from "@/data/titles";
+import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
 export const Route = createFileRoute("/genres")({
@@ -16,6 +17,9 @@ export const Route = createFileRoute("/genres")({
 });
 
 function GenresPage() {
+  const { titles: all } = useCatalog();
+  const titles = collapseSeries(all);
+  const genres = uniq(titles.flatMap((t) => t.genres));
   const [active, setActive] = useState<string>(genres[0] ?? "Drama");
   const items = titles.filter((t) => t.genres.includes(active));
 

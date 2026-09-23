@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { titles } from "@/data/titles";
+import { collapseSeries, matchesSearch, uniq } from "@/data/titles";
+import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
 export const Route = createFileRoute("/new-releases")({
