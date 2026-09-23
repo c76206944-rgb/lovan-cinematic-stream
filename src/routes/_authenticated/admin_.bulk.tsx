@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { useAccount } from "@/lib/use-account";
 import { addJobs, guessFromFile, useJobs, retryJob, cancelJob, pauseJob, resumeJob, retryAll, pauseAll, resumeAll, clearFinished, type Job } from "@/lib/upload-queue";
@@ -103,6 +103,11 @@ function BulkPage() {
                   {j.state === "uploading" || j.state === "waiting" ? <button type="button" onClick={() => pauseJob(j.id)} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs">Pause</button> : null}
                   {j.state === "paused" ? <button type="button" onClick={() => resumeJob(j.id)} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs">Resume</button> : null}
                   {j.state === "failed" ? <button type="button" onClick={() => retryJob(j.id)} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs">Retry</button> : null}
+                  {j.state === "done" && j.titleId ? (
+                    <Link to="/admin/catalog" search={{ edit: j.titleId }} className="shrink-0 rounded-md border border-primary px-3 py-1.5 text-xs text-primary">
+                      Edit
+                    </Link>
+                  ) : null}
                   {j.state !== "done" && j.state !== "saving" ? <button type="button" onClick={() => cancelJob(j.id)} className="shrink-0 text-xs text-muted-foreground">Cancel</button> : null}
                 </div>
               ))}

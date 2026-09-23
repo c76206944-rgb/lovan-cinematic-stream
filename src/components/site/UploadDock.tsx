@@ -31,6 +31,9 @@ export function UploadDock() {
                 <p className={`truncate text-xs ${j.state === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{j.message}</p>
               </div>
               <span className="shrink-0 text-xs text-muted-foreground">{j.state === "done" ? 100 : j.progress}%</span>
+              {j.state === "done" && j.titleId ? (
+                <Link to="/admin/catalog" search={{ edit: j.titleId }} className="shrink-0 text-xs text-primary">Edit</Link>
+              ) : null}
             </div>
           ))}
           <div className="flex justify-between pt-2">
