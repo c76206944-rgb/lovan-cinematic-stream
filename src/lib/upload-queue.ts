@@ -28,7 +28,29 @@ let jobs: Job[] = [];
 const listeners = new Set<() => void>();
 const active = new Map<string, TusUpload>();
 
-/* ---------- persistence (IndexedDB keeps the file itself, so uploads survive restarts) ---------- */
+/* ---------- Session & Authentication Refresh Helpers ---------- */
+export async function getValidSessionToken(forceRefresh = false): Promise<string> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const session = data?.session;
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (!forceRefresh && session?.access_token && session.expires_at && session.expires_at - nowSec > 60) {
+      return session.access_token;
+    }
+    const { data: refData, error } = await supabase.auth.refreshSession();
+    if (!error && refData?.session?.access_token) {
+      return refData.session.access_token;
+    }
+    if (session?.access_token) {
+      return session.access_token;
+    }
+  } catch (err) {
+    console.warn("Session token refresh check encountered an error:", err);
+  }
+  throw new Error("Your session has ended. Please sign in again.");
+}
+
+/* ---------- Persistence (IndexedDB keeps file & resume state) ---------- */
 const DB = "lovan-uploads";
 function db(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {
@@ -49,16 +71,30 @@ function db(): Promise<IDBDatabase> {
     }
   });
 }
+
 async function store(fn: (s: IDBObjectStore) => void) {
   try {
     const d = await db();
     const tx = d.transaction("jobs", "readwrite");
+    tx.onerror = () => { /* transaction errors caught gracefully */ };
     fn(tx.objectStore("jobs"));
   } catch {
-    /* storage unavailable: queue still works in memory */
+    /* storage unavailable or private browsing quota: queue runs in memory */
   }
 }
-const persist = (j: Job) => store((s) => s.put({ ...j }));
+
+const persist = (j: Job) => {
+  store((s) => {
+    try {
+      s.put({ ...j });
+    } catch {
+      // In Safari or private browsing where File cloning is blocked, persist metadata only
+      const { file: _, ...meta } = j;
+      s.put(meta as any);
+    }
+  });
+};
+
 const unpersist = (id: string) => store((s) => s.delete(id));
 
 function emit() {
@@ -92,16 +128,13 @@ export function getAlertPrefs(): AlertPrefs {
     return raw ? { ...defaultPrefs, ...(JSON.parse(raw) as Partial<AlertPrefs>) } : defaultPrefs;
   } catch { return defaultPrefs; }
 }
-export function setAlertPrefs(p: AlertPrefs) {
-  try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* ignore */ }
-}
 
-function notify(event: AlertEvent, kind: "success" | "error" | "info", title: string, body: string) {
+function notify(event: AlertEvent, kind: "info" | "success" | "error", title: string, body: string) {
   const pref = getAlertPrefs()[event];
   if (pref.app) {
-  if (kind === "success") toast.success(title, { description: body });
-  else if (kind === "error") toast.error(title, { description: body });
-  else toast(title, { description: body });
+    if (kind === "success") toast.success(title, { description: body });
+    else if (kind === "error") toast.error(title, { description: body });
+    else toast(title, { description: body });
   }
   if (pref.browser && notificationsSupported() && Notification.permission === "granted" && document.visibilityState === "hidden") {
     const opts = { body, icon: "/icon-192.png", tag: `lovan-${title}` };
@@ -179,9 +212,11 @@ export function retryAll() {
   jobs.filter((j) => j.state === "failed").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
   pump();
 }
+
 export function pauseAll() {
   jobs.filter((j) => j.state === "waiting" || j.state === "uploading").forEach((j) => pauseJob(j.id));
 }
+
 export function resumeAll() {
   jobs.filter((j) => j.state === "paused").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
   pump();
@@ -195,14 +230,12 @@ export function clearFinished() {
 
 export const removeJob = cancelJob;
 
-/** Bytes of video files held on this device by the queue, split by finished and unfinished. */
 export function queueStorage(list: Job[]) {
   let finished = 0, pending = 0;
   for (const j of list) (j.state === "done" ? (finished += j.file?.size ?? 0) : (pending += j.file?.size ?? 0));
   return { finished, pending, total: finished + pending };
 }
 
-/** Removes the temporary copies of finished uploads but keeps them listed as done. */
 export async function freeFinishedFiles() {
   const done = jobs.filter((j) => j.state === "done");
   for (const j of done) await unpersist(j.id);
@@ -228,29 +261,46 @@ function pump() {
 }
 
 async function upload(job: Job): Promise<string> {
-  const safe = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  // Path is stable per job so a resumed upload targets the same object.
+  if (!job.file || job.file.size === 0) {
+    throw new Error("File is empty (0 bytes). Please choose a valid video file.");
+  }
+
+  const safe = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+/, "") || "video";
   const path = `videos/${job.id.slice(0, 8)}-${safe}`;
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("Your session has ended. Sign in again.");
+  
+  // Obtain current or refreshed token
+  const token = await getValidSessionToken();
   const base = (import.meta.env["VITE_SUPABASE_URL"] || "") as string;
   const key = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
   const tus = await loadTus();
+
   await new Promise<void>((resolve, reject) => {
     const up = new tus.Upload(job.file, {
       endpoint: `${base}/storage/v1/upload/resumable`,
       headers: { authorization: `Bearer ${token}`, apikey: key, "x-upsert": "true" },
       onBeforeRequest: async (req: any) => {
         try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const freshToken = sessionData.session?.access_token;
+          const freshToken = await getValidSessionToken();
           if (freshToken && req?.setHeader) {
             req.setHeader("authorization", `Bearer ${freshToken}`);
           }
-        } catch { /* keep existing authorization header */ }
+        } catch { /* retain existing authorization header */ }
       },
-      metadata: { bucketName: "media", objectName: path, contentType: job.file.type || "application/octet-stream", cacheControl: "3600" },
+      onShouldRetry: (err: any, retryAttempt: number) => {
+        const status = err?.originalResponse?.getStatus ? err.originalResponse.getStatus() : err?.status;
+        if (status === 401 || status === 403) {
+          // Token expired during chunk upload: refresh token and retry
+          void supabase.auth.refreshSession().catch(() => {});
+          return retryAttempt < 5;
+        }
+        return retryAttempt < 7;
+      },
+      metadata: {
+        bucketName: "media",
+        objectName: path,
+        contentType: job.file.type || "application/octet-stream",
+        cacheControl: "3600",
+      },
       retryDelays: [0, 1000, 3000, 5000, 10000, 20000, 30000],
       chunkSize: 6 * 1024 * 1024,
       removeFingerprintOnSuccess: true,
@@ -258,7 +308,9 @@ async function upload(job: Job): Promise<string> {
       onProgress: (sent: number, total: number) => {
         const pct = Math.round((sent / Math.max(total, 1)) * 100);
         const cur = jobs.find((j) => j.id === job.id);
-        if (cur?.state === "uploading") patch(job.id, { progress: pct, message: `Uploading ${pct}%` }, pct % 5 === 0);
+        if (cur?.state === "uploading") {
+          patch(job.id, { progress: pct, message: `Uploading ${pct}%` }, pct % 5 === 0);
+        }
       },
       onSuccess: () => resolve(),
       onError: (e: unknown) => reject(e),
@@ -267,8 +319,9 @@ async function upload(job: Job): Promise<string> {
     up.findPreviousUploads().then((prev) => {
       if (prev[0]) up.resumeFromPreviousUpload(prev[0]);
       up.start();
-    });
+    }).catch(() => up.start());
   });
+
   active.delete(job.id);
   return path;
 }
@@ -277,13 +330,19 @@ const stillMine = (id: string, s: JobState) => jobs.find((j) => j.id === id)?.st
 
 async function run(job: Job) {
   try {
-    if (!job.videoPath) {
+    let path = job.videoPath;
+    if (!path) {
       patch(job.id, { state: "uploading", message: `Uploading ${job.progress}%` });
-      const path = await upload(job);
+      path = await upload(job);
       if (!stillMine(job.id, "uploading")) return;
       patch(job.id, { videoPath: path, progress: 100 });
     }
+
     patch(job.id, { state: "saving", message: "Adding to catalogue" });
+    
+    // Ensure fresh session token before saving title
+    await getValidSessionToken().catch(() => {});
+
     const res = await saveTitle({
       data: {
         name: job.name || job.file.name,
@@ -307,11 +366,12 @@ async function run(job: Job) {
         ad_placements: [],
         ad_cues: "",
         ad_notes: "",
-        video_path: job.videoPath,
+        video_path: path || job.videoPath,
         poster_url: null,
         upload_key: job.id,
       },
     });
+
     const warnings = "warnings" in res && Array.isArray(res.warnings) ? (res.warnings as string[]) : [];
     patch(job.id, {
       state: "done",
@@ -365,14 +425,18 @@ if (typeof window !== "undefined") {
       patch(j.id, { state: "waiting", message: "Waiting for connection" });
     });
   });
-  // Restore the queue after an app restart.
+
+  // Restore the queue after an app restart
   void db().then((d) => {
     const r = d.transaction("jobs", "readonly").objectStore("jobs").getAll();
     r.onsuccess = () => {
       const saved = (r.result as Job[]).filter((s) => !jobs.some((j) => j.id === s.id));
       if (!saved.length) return;
       for (const s of saved) {
-        if (s.state === "uploading" || s.state === "saving") { s.state = "waiting"; s.message = "Resuming"; }
+        if (s.state === "uploading" || s.state === "saving") {
+          s.state = "waiting";
+          s.message = "Resuming";
+        }
         jobs.push(s);
       }
       emit();
