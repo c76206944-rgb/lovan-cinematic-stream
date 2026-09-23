@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { recommendTitles } from "@/lib/recommend.functions";
-import { getTitle } from "@/data/titles";
+import { useCatalog } from "@/lib/use-catalog";
 import { TitleCard } from "@/components/site/TitleCard";
 import { PageHeading } from "@/components/site/TitleGrid";
 
@@ -35,6 +35,8 @@ type Pick = { id: string; reason: string };
 
 function ForYouPage() {
   const recommend = useServerFn(recommendTitles);
+  const { titles } = useCatalog();
+  const getTitle = (id: string) => titles.find((t) => t.id === id);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
