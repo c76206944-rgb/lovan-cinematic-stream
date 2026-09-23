@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { useAccount } from "@/lib/use-account";
-import { addJobs, guessFromFile, useJobs, retryJob, removeJob, clearFinished, type Job } from "@/lib/upload-queue";
+import { addJobs, guessFromFile, useJobs, retryJob, cancelJob, pauseJob, resumeJob, retryAll, pauseAll, resumeAll, clearFinished, type Job } from "@/lib/upload-queue";
 
 export const Route = createFileRoute("/_authenticated/admin_/bulk")({
   head: () => ({
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/admin_/bulk")({
   component: BulkPage,
 });
 
-type Draft = Omit<Job, "id" | "state" | "progress" | "message" | "videoPath" | "titleId">;
+type Draft = Omit<Job, "id" | "state" | "progress" | "message" | "videoPath" | "titleId" | "warnings">;
 
 function BulkPage() {
   const account = useAccount();
@@ -84,18 +84,26 @@ function BulkPage() {
           <div className="mt-10">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Upload queue</h2>
-              <button type="button" onClick={clearFinished} className="text-sm text-muted-foreground">Clear finished</button>
+              <div className="flex flex-wrap justify-end gap-3 text-sm text-muted-foreground">
+                <button type="button" onClick={pauseAll}>Pause all</button>
+                <button type="button" onClick={resumeAll}>Resume all</button>
+                <button type="button" onClick={retryAll}>Retry all</button>
+                <button type="button" onClick={clearFinished}>Clear finished</button>
+              </div>
             </div>
             <div className="mt-3 divide-y divide-border rounded-lg border border-border">
               {jobs.map((j) => (
-                <div key={j.id} className="flex items-center gap-3 p-3">
-                  <div className="min-w-0 flex-1">
+                <div key={j.id} className="flex flex-wrap items-center gap-2 p-3 sm:flex-nowrap sm:gap-3">
+                  <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
                     <p className="truncate text-sm">{j.kind === "series" ? `${j.seriesName || j.name} S${j.season}E${j.episode}` : j.name}</p>
                     <div className="mt-1.5 h-1 rounded bg-muted"><div className="h-1 rounded bg-primary" style={{ width: `${j.state === "done" ? 100 : j.progress}%` }} /></div>
-                    <p className={`mt-1 truncate text-xs ${j.state === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{j.message}</p>
+                    <p className={`mt-1 truncate text-xs ${j.state === "failed" ? "text-destructive" : j.warnings?.length ? "text-primary" : "text-muted-foreground"}`}>{j.message}</p>
                   </div>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{j.state === "done" ? 100 : j.progress}%</span>
+                  {j.state === "uploading" || j.state === "waiting" ? <button type="button" onClick={() => pauseJob(j.id)} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs">Pause</button> : null}
+                  {j.state === "paused" ? <button type="button" onClick={() => resumeJob(j.id)} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs">Resume</button> : null}
                   {j.state === "failed" ? <button type="button" onClick={() => retryJob(j.id)} className="shrink-0 rounded-md border border-border px-3 py-1.5 text-xs">Retry</button> : null}
-                  {j.state === "failed" || j.state === "waiting" ? <button type="button" onClick={() => removeJob(j.id)} className="shrink-0 text-xs text-muted-foreground">Remove</button> : null}
+                  {j.state !== "done" && j.state !== "saving" ? <button type="button" onClick={() => cancelJob(j.id)} className="shrink-0 text-xs text-muted-foreground">Cancel</button> : null}
                 </div>
               ))}
             </div>
