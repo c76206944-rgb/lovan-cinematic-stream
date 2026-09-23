@@ -43,6 +43,13 @@
       "when": 1790182068447,
       "tag": "0005_offline_and_idempotent_saves",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790184759316,
+      "tag": "0006_profile_ai_language",
+      "breakpoints": true
     }
   ]
 }
