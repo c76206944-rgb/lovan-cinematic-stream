@@ -13,6 +13,22 @@ const MAX_POSTER_SIDE = 8000;
 
 type Ctx = { supabase: any; userId: string };
 
+const duplicateFields = "id, name, kind, series_name, season, episode, year, published, archived";
+
+function existingSummary(row: any) {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    kind: row.kind as "movie" | "series",
+    seriesName: (row.series_name ?? "") as string,
+    season: row.season as number | null,
+    episode: row.episode as number | null,
+    year: row.year as number,
+    published: Boolean(row.published),
+    archived: Boolean(row.archived),
+  };
+}
+
 async function assertStaff(context: Ctx) {
   const { data } = await context.supabase.rpc("is_staff", { _user_id: context.userId });
   if (!data) throw new Error("Only studio staff can do this.");
@@ -98,20 +114,19 @@ export const saveTitle = createServerFn({ method: "POST" })
     // Retried saves reuse the same upload key, so a second attempt returns the first record.
     if (!data.id && data.upload_key) {
       const { data: existing } = await context.supabase
-        .from("catalog_titles").select("id").eq("upload_key", data.upload_key).maybeSingle();
-      if (existing) return { id: existing.id as string, duplicate: true };
+        .from("catalog_titles").select(duplicateFields).eq("upload_key", data.upload_key).maybeSingle();
+      if (existing) return { id: existing.id as string, duplicate: true, existing: existingSummary(existing) };
     }
     if (!data.id) {
-      let q = context.supabase.from("catalog_titles").select("id").eq("kind", data.kind);
+      let q = context.supabase.from("catalog_titles").select(duplicateFields).eq("kind", data.kind);
       q = data.kind === "series"
         ? q.ilike("series_name", data.series_name || data.name).eq("season", data.season ?? 0).eq("episode", data.episode ?? 0)
         : q.ilike("name", data.name).eq("year", data.year);
       const { data: clash } = await q.limit(1);
       if (clash && clash.length) {
         await removeQuietly(context, [data.video_path, data.poster_url]);
-        throw new Error(data.kind === "series"
-          ? "This episode is already in the catalogue. Edit it from the Catalogue tab."
-          : "A film with this name and year is already in the catalogue. Edit it from the Catalogue tab.");
+        const existing = clash[0];
+        if (existing) return { id: existing.id as string, duplicate: true, existing: existingSummary(existing) };
       }
     }
 
@@ -169,7 +184,7 @@ export const saveTitle = createServerFn({ method: "POST" })
           data.poster_url && before.poster_url !== data.poster_url ? before.poster_url : null,
         ]);
       }
-      return { id, duplicate: false };
+      return { id, duplicate: false, existing: null };
     }
     const { data: inserted, error } = await context.supabase
       .from("catalog_titles")
@@ -179,13 +194,13 @@ export const saveTitle = createServerFn({ method: "POST" })
     if (error) {
       if (error.code === "23505" && data.upload_key) {
         const { data: existing } = await context.supabase
-          .from("catalog_titles").select("id").eq("upload_key", data.upload_key).maybeSingle();
-        if (existing) return { id: existing.id as string, duplicate: true };
+            .from("catalog_titles").select(duplicateFields).eq("upload_key", data.upload_key).maybeSingle();
+        if (existing) return { id: existing.id as string, duplicate: true, existing: existingSummary(existing) };
       }
       if (error.code === "23505") throw new Error("This title is already in the catalogue.");
       throw new Error(error.message);
     }
-    return { id: inserted.id as string, duplicate: false };
+    return { id: inserted.id as string, duplicate: false, existing: null };
   });
 
 export const setTitleStatus = createServerFn({ method: "POST" })

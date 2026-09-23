@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeading } from "@/components/site/TitleGrid";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,16 @@ export const Route = createFileRoute("/profile")({
 function ProfilePage() {
   const account = useAccount();
   const navigate = useNavigate();
+  const [aiLanguage, setAiLanguage] = useState("English");
+  const [languageStatus, setLanguageStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!account.userId) return;
+    void supabase.auth.getUser().then(({ data }) => {
+      const saved = data.user?.user_metadata?.["ai_language"];
+      if (typeof saved === "string") setAiLanguage(saved);
+    });
+  }, [account.userId]);
 
   if (!account.ready) {
     return <div className="mx-auto max-w-3xl px-4 py-12 text-sm text-muted-foreground sm:px-6">Loading your account.</div>;
@@ -55,6 +66,12 @@ function ProfilePage() {
     void navigate({ to: "/" });
   };
 
+  const saveLanguage = async () => {
+    setLanguageStatus("Saving");
+    const { error } = await supabase.auth.updateUser({ data: { ai_language: aiLanguage } });
+    setLanguageStatus(error ? "Could not save the language." : "AI language saved.");
+  };
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <PageHeading title="Profile" description="Your account details and viewing preferences." />
@@ -66,6 +83,17 @@ function ProfilePage() {
           </div>
         ))}
       </dl>
+      <section className="mt-6 rounded-lg border border-border bg-surface p-5">
+        <label className="block text-sm text-foreground" htmlFor="ai-language">AI metadata language</label>
+        <p className="mt-1 text-xs text-muted-foreground">Synopses and AI suggestions in the upload studio will use this language.</p>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <select id="ai-language" value={aiLanguage} onChange={(event) => setAiLanguage(event.target.value)} className="min-w-52 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
+            {["English", "French", "Spanish", "Portuguese", "Arabic", "Swahili", "German", "Italian", "Hindi", "Mandarin Chinese", "Japanese", "Korean"].map((item) => <option key={item}>{item}</option>)}
+          </select>
+          <button type="button" onClick={saveLanguage} className="rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">Save language</button>
+        </div>
+        {languageStatus ? <p className="mt-2 text-xs text-muted-foreground">{languageStatus}</p> : null}
+      </section>
       <div className="mt-6 flex flex-wrap gap-3">
         {account.staff ? (
           <Link to="/admin" className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">

@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { describeTitle, type Suggestion, type FieldKey } from "@/lib/metadata.functions";
 import { saveTitle } from "@/lib/catalog.functions";
 import { AdminTabs } from "@/components/site/AdminTabs";
+import { Button } from "@/components/ui/button";
+import * as tus from "tus-js-client";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -30,6 +32,17 @@ type CatalogRow = {
   published: boolean;
   genres: string[];
   created_at: string;
+};
+
+type StageState = { state: "idle" | "active" | "complete" | "failed"; progress: number; detail: string };
+type SaveStage = "video" | "poster" | "validation" | "catalogue";
+type ExistingRecord = { id: string; name: string; kind: Kind; seriesName: string; season: number | null; episode: number | null; year: number; published: boolean; archived: boolean };
+
+const initialStages: Record<SaveStage, StageState> = {
+  video: { state: "idle", progress: 0, detail: "Waiting" },
+  poster: { state: "idle", progress: 0, detail: "Waiting" },
+  validation: { state: "idle", progress: 0, detail: "Waiting" },
+  catalogue: { state: "idle", progress: 0, detail: "Waiting" },
 };
 
 const placements = [
@@ -60,6 +73,7 @@ function AdminPage() {
   const [checking, setChecking] = useState(true);
   const [staff, setStaff] = useState(false);
   const [email, setEmail] = useState("");
+  const [aiLanguage, setAiLanguage] = useState("English");
 
   const [kind, setKind] = useState<Kind>("movie");
   const [name, setName] = useState("");
@@ -100,6 +114,9 @@ function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stages, setStages] = useState<Record<SaveStage, StageState>>(initialStages);
+  const [failedStage, setFailedStage] = useState<SaveStage | null>(null);
+  const [existingRecord, setExistingRecord] = useState<ExistingRecord | null>(null);
   const [rows, setRows] = useState<CatalogRow[]>([]);
 
   const loadRows = useCallback(async () => {
@@ -117,6 +134,8 @@ function AdminPage() {
       const { data: userData } = await supabase.auth.getUser();
       if (!active) return;
       setEmail(userData.user?.email ?? "");
+      const savedLanguage = userData.user?.user_metadata?.["ai_language"];
+      if (typeof savedLanguage === "string") setAiLanguage(savedLanguage);
       await supabase.rpc("claim_owner_admin");
       const { data: isStaff } = await supabase.rpc("is_staff", {
         _user_id: userData.user?.id ?? "",
@@ -162,7 +181,7 @@ function AdminPage() {
     setEnriching(true);
     try {
       const result = await enrich({
-        data: { name: name.trim(), kind, notes: notes.trim() },
+        data: { name: name.trim(), kind, notes: notes.trim(), outputLanguage: aiLanguage },
       });
       setReview({ recognized: result.recognized, matchedTitle: result.matchedTitle, confidence: result.confidence, items: result.suggestions });
       setAccepted(Object.fromEntries(result.suggestions.map((x) => [x.key, x.verified && Boolean(x.value)])));
@@ -185,7 +204,11 @@ function AdminPage() {
     setStatus("Applied the selected suggestions. You can still edit every field.");
   };
 
-  const uploadFile = async (file: File, folder: string, onProgress: (n: number) => void) => {
+  const updateStage = (stage: SaveStage, patch: Partial<StageState>) => {
+    setStages((current) => ({ ...current, [stage]: { ...current[stage], ...patch } }));
+  };
+
+  const uploadFile = async (file: File, folder: string, stage: "video" | "poster") => {
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${folder}/${Date.now()}-${safe}`;
     const { data: sessionData } = await supabase.auth.getSession();
@@ -193,23 +216,29 @@ function AdminPage() {
     if (!token) throw new Error("Your session has ended. Sign in again.");
     const base = import.meta.env["VITE_SUPABASE_URL"] as string;
     const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
-    await new Promise<void>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${base}/storage/v1/object/media/${path}`);
-      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-      xhr.setRequestHeader("apikey", key);
-      xhr.setRequestHeader("x-upsert", "false");
-      xhr.setRequestHeader("cache-control", "3600");
-      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
-      };
-      xhr.onload = () =>
-        xhr.status >= 200 && xhr.status < 300
-          ? resolve()
-          : reject(new Error(`Upload failed (${xhr.status}). ${xhr.responseText.slice(0, 160)}`));
-      xhr.onerror = () => reject(new Error("Upload failed. Check your connection."));
-      xhr.send(file);
+    updateStage(stage, { state: "active", progress: 0, detail: "Uploading" });
+    await new Promise<void>(async (resolve, reject) => {
+      const upload = new tus.Upload(file, {
+        endpoint: `${base}/storage/v1/upload/resumable`,
+        headers: { authorization: `Bearer ${token}`, apikey: key, "x-upsert": "false" },
+        metadata: { bucketName: "media", objectName: path, contentType: file.type || "application/octet-stream", cacheControl: "3600" },
+        retryDelays: [0, 1000, 3000, 5000, 10000],
+        chunkSize: 6 * 1024 * 1024,
+        removeFingerprintOnSuccess: true,
+        onProgress: (sent, total) => {
+          const next = Math.round((sent / Math.max(total, 1)) * 100);
+          updateStage(stage, { state: "active", progress: next, detail: `Uploading ${next}%` });
+        },
+        onSuccess: () => {
+          updateStage(stage, { state: "complete", progress: 100, detail: "Uploaded" });
+          resolve();
+        },
+        onError: (cause) => reject(cause),
+      });
+      const previous = await upload.findPreviousUploads();
+      const resumable = previous[0];
+      if (resumable) upload.resumeFromPreviousUpload(resumable);
+      upload.start();
     });
     return path;
   };
@@ -218,6 +247,8 @@ function AdminPage() {
     event.preventDefault();
     setError(null);
     setStatus(null);
+    setExistingRecord(null);
+    setFailedStage(null);
     if (!name.trim()) {
       setError("Enter the title name.");
       return;
@@ -229,23 +260,27 @@ function AdminPage() {
       if (videoFile || posterFile) {
         setUploading(true);
         setProgress(0);
-        const vSize = videoFile?.size ?? 0;
-        const pSize = posterFile?.size ?? 0;
-        let vDone = 0;
-        let pDone = 0;
-        const report = () =>
-          setProgress(Math.round((vDone * vSize + pDone * pSize) / Math.max(1, vSize + pSize)));
         const sig = `${videoFile?.name}:${videoFile?.size}|${posterFile?.name}:${posterFile?.size}`;
         if (uploaded.current?.sig === sig) {
           ({ video: videoPath, poster: posterPath } = uploaded.current);
-        } else [videoPath, posterPath] = await Promise.all([
-          videoFile ? uploadFile(videoFile, "videos", (n) => { vDone = n; report(); }) : Promise.resolve(null),
-          posterFile ? uploadFile(posterFile, "posters", (n) => { pDone = n; report(); }) : Promise.resolve(null),
-        ]);
-        uploaded.current = { sig, video: videoPath, poster: posterPath };
+        } else {
+          const videoPromise = videoFile
+            ? uploadFile(videoFile, "videos", "video").then((path) => { videoPath = path; uploaded.current = { sig, video: path, poster: uploaded.current?.sig === sig ? uploaded.current.poster : null }; })
+            : Promise.resolve();
+          const posterPromise = posterFile
+            ? uploadFile(posterFile, "posters", "poster").then((path) => { posterPath = path; uploaded.current = { sig, video: uploaded.current?.sig === sig ? uploaded.current.video : null, poster: path }; })
+            : Promise.resolve();
+          const results = await Promise.allSettled([videoPromise, posterPromise]);
+          const rejected = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+          if (rejected) throw rejected.reason;
+          videoPath = uploaded.current?.video ?? videoPath;
+          posterPath = uploaded.current?.poster ?? posterPath;
+        }
         setUploading(false);
       }
 
+      updateStage("validation", { state: "active", progress: 50, detail: "Checking files and details" });
+      updateStage("catalogue", { state: "active", progress: 10, detail: "Saving record" });
       const saved = await persist({
         data: {
           name: displayName.trim() || name.trim(),
@@ -276,13 +311,21 @@ function AdminPage() {
         },
       });
 
-      setStatus(saved.duplicate ? "This title was already saved. No copy was made." : published ? "Saved and published." : "Saved as a draft.");
+      updateStage("validation", { state: "complete", progress: 100, detail: "Checks passed" });
+      updateStage("catalogue", { state: "complete", progress: 100, detail: saved.duplicate ? "Existing record found" : "Saved" });
+      setExistingRecord(saved.existing as ExistingRecord | null);
+      setStatus(saved.duplicate ? "A matching title already exists. No copy was made." : published ? "Saved and published." : "Saved as a draft.");
       uploadKey.current = crypto.randomUUID();
       uploaded.current = null;
       setVideoFile(null);
       setPosterFile(null);
       void loadRows();
     } catch (cause) {
+      const currentFailed = uploading
+        ? (stages.video.state === "active" ? "video" : "poster")
+        : stages.catalogue.state === "active" ? "catalogue" : "validation";
+      setFailedStage(currentFailed);
+      updateStage(currentFailed, { state: "failed", detail: "Failed. Retry will continue from completed work." });
       setError(cause instanceof Error ? cause.message : "Could not save the title.");
     } finally {
       setUploading(false);
@@ -342,7 +385,7 @@ function AdminPage() {
         <AdminTabs />
       </div>
 
-      <form onSubmit={save} className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+      <form id="upload-form" onSubmit={save} className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-8">
           <section className="rounded-lg border border-border p-5">
             <h2 className="text-sm font-medium text-foreground">Title</h2>
@@ -609,6 +652,36 @@ function AdminPage() {
                 <p className="text-xs text-muted-foreground">Checking files and saving.</p>
               ) : null}
             </div>
+          </section>
+
+          <section className="rounded-lg border border-border p-5" aria-live="polite">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-medium text-foreground">Upload and save status</h2>
+              {failedStage ? <Button type="submit" form="upload-form" size="sm">Retry</Button> : null}
+            </div>
+            <div className="mt-4 space-y-3">
+              {(["video", "poster", "validation", "catalogue"] as SaveStage[]).map((stage) => {
+                const item = stages[stage];
+                return (
+                  <div key={stage}>
+                    <div className="flex justify-between gap-4 text-xs">
+                      <span className="capitalize text-foreground">{stage}</span>
+                      <span className={item.state === "failed" ? "text-primary" : "text-muted-foreground"}>{item.detail}</span>
+                    </div>
+                    {item.state === "active" ? <div className="mt-1 h-1 overflow-hidden rounded-sm bg-surface"><div className="h-full bg-primary transition-[width]" style={{ width: `${item.progress}%` }} /></div> : null}
+                  </div>
+                );
+              })}
+            </div>
+            {existingRecord ? (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="text-sm font-medium text-foreground">Existing record</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {existingRecord.kind === "series" ? `${existingRecord.seriesName || existingRecord.name}, season ${existingRecord.season}, episode ${existingRecord.episode}` : `${existingRecord.name} (${existingRecord.year})`} · {existingRecord.archived ? "Archived" : existingRecord.published ? "Published" : "Draft"}
+                </p>
+                <Link to="/admin/catalog" className="mt-3 inline-block text-sm text-primary">Open in Catalogue</Link>
+              </div>
+            ) : null}
           </section>
 
           <section className="rounded-lg border border-border p-5">

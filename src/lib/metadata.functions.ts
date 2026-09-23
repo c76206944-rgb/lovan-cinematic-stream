@@ -8,6 +8,7 @@ const Input = z.object({
   name: z.string().min(1).max(200),
   kind: z.string().min(1).max(40),
   notes: z.string().max(4000),
+  outputLanguage: z.string().trim().min(2).max(60).default("English"),
 });
 
 const Level = z.enum(["high", "medium", "low"]);
@@ -120,13 +121,14 @@ export const describeTitle = createServerFn({ method: "POST" })
         "source is notes when the value is written in the uploader notes, known_title when it comes from your knowledge of the recognized work, inferred when you reasoned it (like a synopsis or genre from a description), none when empty.",
         "If not recognized, leave cast, director and year empty unless they are in the notes.",
         "Use the uploader notes over your memory when they conflict.",
+        `Write the synopsis, country, language, runtime and maturity text in ${data.outputLanguage}. Keep personal names and title names in their established form. Keep genre labels in the supplied English list because the catalogue uses controlled labels.`,
         `genres: one to three, comma separated, only from: ${GENRES.join(", ")}.`,
         "cast: up to six names, comma separated, billing order.",
         "synopsis: two or three plain sentences, no ending spoilers, no dashes, no emojis, no marketing phrases.",
         "runtime: 1h 48m for films or 8 episodes for series. year: four digits.",
         "confidence high only when certain.",
       ].join(" "),
-      prompt: `Title name: ${data.name}\nType: ${data.kind}\nNotes from the uploader:\n${data.notes || "(none)"}`,
+      prompt: `Title name: ${data.name}\nType: ${data.kind}\nOutput language: ${data.outputLanguage}\nNotes from the uploader:\n${data.notes || "(none)"}`,
       providerOptions: {
         openai: {
           forceReasoning: true,
