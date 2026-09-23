@@ -41,7 +41,7 @@ export const Route = createFileRoute("/title/$titleId")({
         audio: [row.language],
         subtitles: [],
         demo: false,
-        canDownload: row.hasVideo,
+        canDownload: row.canDownload,
       },
     };
   },
