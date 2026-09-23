@@ -5,6 +5,7 @@ import { useAccount } from "@/lib/use-account";
 import { addJobs, guessFromFile, useJobs, retryJob, cancelJob, pauseJob, resumeJob, retryAll, pauseAll, resumeAll, clearFinished, type Job } from "@/lib/upload-queue";
 
 export const Route = createFileRoute("/_authenticated/admin_/bulk")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Upload many titles | LOVAN Studio" },
@@ -47,7 +48,7 @@ function BulkPage() {
         </p>
         <div className="mt-6"><AdminTabs /></div>
 
-        <label className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm hover:border-primary">
+        <label className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm transition-colors hover:border-primary hover:bg-muted/10">
           <span className="font-medium">Choose video files</span>
           <span className="mt-1 text-muted-foreground">Films and episodes. Names like Show S01E02 are detected as episodes.</span>
           <input type="file" accept="video/*,.m3u8,.mkv,.avi" multiple className="hidden" onChange={(e) => { pick(e.target.files); e.target.value = ""; }} />
@@ -68,34 +69,38 @@ function BulkPage() {
                     <input type="number" min={1} value={d.episode ?? 1} onChange={(e) => edit(i, { episode: Number(e.target.value) || 1 })} className="w-full rounded-md border border-input bg-background px-2 py-2 text-sm sm:w-20" aria-label="Episode" />
                   </>
                 ) : <><span className="hidden sm:block" /><span className="hidden sm:block" /></>}
-                <button type="button" onClick={() => setDrafts((x) => x.filter((_, k) => k !== i))} className="text-sm text-muted-foreground">Remove</button>
+                <button type="button" onClick={() => setDrafts((x) => x.filter((_, k) => k !== i))} className="text-sm text-muted-foreground hover:text-foreground">Remove</button>
               </div>
             ))}
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} /> Publish right away
             </label>
-            <button type="button" onClick={start} className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground sm:w-auto">
+            <button type="button" onClick={start} className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto">
               Start uploading {drafts.length} {drafts.length === 1 ? "title" : "titles"}
             </button>
           </div>
-        ) : null}
+        ) : (
+          <div className="mt-6 rounded-lg border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
+            No files staged yet. Drag and drop or click above to stage multiple files.
+          </div>
+        )}
 
         {jobs.length ? (
           <div className="mt-10">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">Upload queue</h2>
               <div className="flex flex-wrap justify-end gap-3 text-sm text-muted-foreground">
-                <button type="button" onClick={pauseAll}>Pause all</button>
-                <button type="button" onClick={resumeAll}>Resume all</button>
-                <button type="button" onClick={retryAll}>Retry all</button>
-                <button type="button" onClick={clearFinished}>Clear finished</button>
+                <button type="button" onClick={pauseAll} className="hover:text-foreground">Pause all</button>
+                <button type="button" onClick={resumeAll} className="hover:text-foreground">Resume all</button>
+                <button type="button" onClick={retryAll} className="hover:text-foreground">Retry all</button>
+                <button type="button" onClick={clearFinished} className="hover:text-foreground">Clear finished</button>
               </div>
             </div>
             <div className="mt-3 divide-y divide-border rounded-lg border border-border">
               {jobs.map((j) => (
                 <div key={j.id} className="flex flex-wrap items-center gap-2 p-3 sm:flex-nowrap sm:gap-3">
                   <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
-                    <p className="truncate text-sm">{j.kind === "series" ? `${j.seriesName || j.name} S${j.season}E${j.episode}` : j.name}</p>
+                    <p className="truncate text-sm font-medium">{j.kind === "series" ? `${j.seriesName || j.name} S${j.season}E${j.episode}` : j.name}</p>
                     <div className="mt-1.5 h-1 rounded bg-muted"><div className="h-1 rounded bg-primary" style={{ width: `${j.state === "done" ? 100 : j.progress}%` }} /></div>
                     <p className={`mt-1 truncate text-xs ${j.state === "failed" ? "text-destructive" : j.warnings?.length ? "text-primary" : "text-muted-foreground"}`}>{j.message}</p>
                   </div>
@@ -108,7 +113,7 @@ function BulkPage() {
                       Edit
                     </Link>
                   ) : null}
-                  {j.state !== "done" && j.state !== "saving" ? <button type="button" onClick={() => cancelJob(j.id)} className="shrink-0 text-xs text-muted-foreground">Cancel</button> : null}
+                  {j.state !== "done" && j.state !== "saving" ? <button type="button" onClick={() => cancelJob(j.id)} className="shrink-0 text-xs text-muted-foreground hover:text-foreground">Cancel</button> : null}
                 </div>
               ))}
             </div>
