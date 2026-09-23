@@ -116,6 +116,117 @@ export type Database = {
         }
         Relationships: []
       }
+      removal_requests: {
+        Row: {
+          accurate: boolean
+          created_at: string
+          email: string
+          full_name: string
+          good_faith: boolean
+          id: string
+          organisation: string
+          proof: string
+          reason: string
+          relationship: string
+          signature: string
+          status: string
+          title_name: string
+          title_url: string
+        }
+        Insert: {
+          accurate: boolean
+          created_at?: string
+          email: string
+          full_name: string
+          good_faith: boolean
+          id?: string
+          organisation?: string
+          proof: string
+          reason: string
+          relationship: string
+          signature: string
+          status?: string
+          title_name: string
+          title_url?: string
+        }
+        Update: {
+          accurate?: boolean
+          created_at?: string
+          email?: string
+          full_name?: string
+          good_faith?: boolean
+          id?: string
+          organisation?: string
+          proof?: string
+          reason?: string
+          relationship?: string
+          signature?: string
+          status?: string
+          title_name?: string
+          title_url?: string
+        }
+        Relationships: []
+      }
+      title_comments: {
+        Row: {
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          title_id: string
+          user_id: string
+        }
+        Insert: {
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+          title_id: string
+          user_id: string
+        }
+        Update: {
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          title_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      title_requests: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          notes: string
+          status: string
+          title_name: string
+          user_id: string
+          year: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          notes?: string
+          status?: string
+          title_name: string
+          user_id: string
+          year?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          notes?: string
+          status?: string
+          title_name?: string
+          user_id?: string
+          year?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
