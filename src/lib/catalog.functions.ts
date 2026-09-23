@@ -181,7 +181,6 @@ export const setTitleStatus = createServerFn({ method: "POST" })
     if (data.action === "publish") {
       const { data: row } = await context.supabase.from("catalog_titles").select("video_path, synopsis, genres").eq("id", data.id).single();
       if (!row?.video_path) throw new Error("Add a video file before publishing.");
-      if (!row.synopsis || row.genres.length === 0) throw new Error("Add a synopsis and genre before publishing.");
     }
     const patch =
       data.action === "publish"
