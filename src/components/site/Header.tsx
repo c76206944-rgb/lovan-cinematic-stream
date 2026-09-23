@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Compass, Home, List, Search, User } from "lucide-react";
+import { useAccount } from "@/lib/use-account";
 
 const desktopLinks = [
   { to: "/home", label: "Home" },
@@ -22,6 +23,7 @@ const mobileLinks = [
 ] as const;
 
 export function Header() {
+  const account = useAccount();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/92 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-6 px-4 sm:px-6">
@@ -56,6 +58,16 @@ export function Header() {
           >
             Premium
           </Link>
+          {account.staff ? (
+            <Link to="/admin" className="hidden rounded-md border border-border px-3 py-2 text-sm text-foreground transition-colors hover:border-primary sm:inline-block">
+              Studio
+            </Link>
+          ) : null}
+          {account.ready && !account.email ? (
+            <Link to="/auth" className="rounded-md border border-border px-3 py-2 text-sm text-foreground transition-colors hover:border-primary">
+              Sign in
+            </Link>
+          ) : null}
           <Link
             to="/profile"
             aria-label="Profile"

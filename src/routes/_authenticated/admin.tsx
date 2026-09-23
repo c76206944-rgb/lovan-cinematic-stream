@@ -3,6 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { describeTitle } from "@/lib/metadata.functions";
+import { saveTitle } from "@/lib/catalog.functions";
+import { AdminTabs } from "@/components/site/AdminTabs";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -53,6 +55,7 @@ function Field(props: { label: string; children: React.ReactNode }) {
 
 function AdminPage() {
   const enrich = useServerFn(describeTitle);
+  const persist = useServerFn(saveTitle);
 
   const [checking, setChecking] = useState(true);
   const [staff, setStaff] = useState(false);
@@ -201,38 +204,33 @@ function AdminPage() {
         setUploading(false);
       }
 
-      const { error: insertError } = await supabase.from("catalog_titles").insert({
-        name: displayName.trim() || name.trim(),
-        kind,
-        series_name: kind === "series" ? seriesName.trim() || name.trim() : "",
-        season: kind === "series" && season ? Number(season) : null,
-        episode: kind === "series" && episode ? Number(episode) : null,
-        episode_title: kind === "series" ? episodeTitle.trim() : "",
-        synopsis: synopsis.trim(),
-        genres: genres
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        cast_members: castMembers
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-        director: director.trim(),
-        country: country.trim(),
-        language: language.trim(),
-        runtime: runtime.trim(),
-        maturity: maturity.trim(),
-        year: year ? Number(year) : new Date().getFullYear(),
-        premium,
-        published,
-        ad_enabled: adEnabled,
-        ad_placements: adPlacements,
-        ad_cues: adCues.trim(),
-        ad_notes: adNotes.trim(),
-        video_path: videoPath,
-        poster_url: posterPath,
+      await persist({
+        data: {
+          name: displayName.trim() || name.trim(),
+          kind,
+          series_name: kind === "series" ? seriesName.trim() || name.trim() : "",
+          season: kind === "series" && season ? Number(season) : null,
+          episode: kind === "series" && episode ? Number(episode) : null,
+          episode_title: kind === "series" ? episodeTitle.trim() : "",
+          synopsis: synopsis.trim(),
+          genres: genres.split(",").map((item) => item.trim()).filter(Boolean),
+          cast_members: castMembers.split(",").map((item) => item.trim()).filter(Boolean),
+          director: director.trim(),
+          country: country.trim(),
+          language: language.trim(),
+          runtime: runtime.trim(),
+          maturity: maturity.trim(),
+          year: year ? Number(year) : new Date().getFullYear(),
+          premium,
+          published,
+          ad_enabled: adEnabled,
+          ad_placements: adPlacements as ("pre_roll" | "mid_roll" | "post_roll" | "banner" | "sponsored_card")[],
+          ad_cues: adCues.trim(),
+          ad_notes: adNotes.trim(),
+          video_path: videoPath,
+          poster_url: posterPath,
+        },
       });
-      if (insertError) throw new Error(insertError.message);
 
       setStatus(published ? "Saved and published." : "Saved as a draft.");
       setVideoFile(null);
@@ -294,6 +292,9 @@ function AdminPage() {
           ))}
         </div>
       </header>
+      <div className="mt-4">
+        <AdminTabs />
+      </div>
 
       <form onSubmit={save} className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-8">

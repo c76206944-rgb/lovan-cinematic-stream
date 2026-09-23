@@ -41,8 +41,12 @@ function AuthPage() {
       return;
     }
     await supabase.rpc("claim_owner_admin");
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: isStaff } = await supabase.rpc("is_staff", {
+      _user_id: userData.user?.id ?? "",
+    });
     setBusy(false);
-    void navigate({ to: "/admin" });
+    void navigate({ to: isStaff ? "/admin" : "/profile" });
   };
 
   return (
