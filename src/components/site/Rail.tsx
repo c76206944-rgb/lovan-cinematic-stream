@@ -41,11 +41,10 @@ export function Rail({ rail }: { rail: RailType }) {
         ref={ref}
         className="rail-scroll flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:px-6"
       >
-        {rail.items.map((item, index) => (
+        {rail.items.map((item) => (
           <TitleCard
             key={`${rail.id}-${item.id}`}
             title={item}
-            progress={rail.progress ? 18 + ((index * 23) % 70) : undefined}
             className="w-[240px] shrink-0 snap-start sm:w-[280px]"
           />
         ))}

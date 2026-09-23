@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 const links = [
   { to: "/movies", label: "Movies" },
   { to: "/series", label: "Series" },
-  { to: "/donate", label: "Donate" },
   { to: "/requests", label: "Request a title" },
   { to: "/downloads", label: "Downloads" },
   { to: "/removal-request", label: "Request removal" },

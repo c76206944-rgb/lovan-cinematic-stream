@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {  } from "@/data/titles";
+import { collapseSeries } from "@/data/titles";
 import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
@@ -16,7 +16,8 @@ export const Route = createFileRoute("/new-releases")({
 });
 
 function NewReleases() {
-  const items = [...titles].sort((a, b) => b.year - a.year).slice(0, 12);
+  const { titles: all } = useCatalog();
+  const items = collapseSeries(all).slice(0, 24);
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
       <PageHeading

@@ -23,11 +23,6 @@ export function TitleCard({ title, progress, className }: Props) {
           height={864}
           className="aspect-video w-full object-cover opacity-90 transition-opacity duration-300 group-hover:opacity-100"
         />
-        {title.premium ? (
-          <span className="absolute left-2 top-2 rounded-sm bg-background/80 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
-            Premium
-          </span>
-        ) : null}
         {typeof progress === "number" ? (
           <div className="absolute inset-x-0 bottom-0 h-0.5 bg-border">
             <div className="h-full bg-primary" style={{ width: `${progress}%` }} />
@@ -36,7 +31,7 @@ export function TitleCard({ title, progress, className }: Props) {
       </div>
       <p className="mt-2 truncate text-sm text-foreground">{title.name}</p>
       <p className="truncate text-xs text-muted-foreground">
-        {title.year} · {title.country} · {title.language}
+        {[title.kind === "series" ? "Series" : "Film", title.year, title.language].filter(Boolean).join(" · ")}
       </p>
     </Link>
   );

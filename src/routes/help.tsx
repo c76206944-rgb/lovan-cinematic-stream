@@ -21,15 +21,15 @@ export const Route = createFileRoute("/help")({
         },
         {
           heading: "Is LOVAN free?",
-          body: "Yes. The free tier includes up to five advertising placements per session. Premium removes advertising.",
+          body: "Yes. LOVAN is free to watch and may show a small number of adverts.",
         },
         {
           heading: "Which devices work?",
-          body: "Any modern browser. Premium allows up to four devices on one account.",
+          body: "Any modern browser on phones, tablets and computers. You can also install LOVAN as an app.",
         },
         {
           heading: "Can I watch offline?",
-          body: "Offline viewing is available on Premium where the territory rights and your plan allow it.",
+          body: "Yes, for titles marked for offline viewing. Saved copies play only inside LOVAN.",
         },
         {
           heading: "Playback problems",
