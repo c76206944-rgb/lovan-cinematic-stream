@@ -3,13 +3,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { readImageSize } from "./image-size";
 
-const VIDEO_TYPES = ["video/mp4", "video/quicktime", "video/webm", "application/vnd.apple.mpegurl", "application/x-mpegurl"];
-const POSTER_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_VIDEO = 2 * 1024 * 1024 * 1024;
-const MAX_POSTER = 10 * 1024 * 1024;
-const MIN_POSTER_W = 480;
-const MIN_POSTER_H = 270;
-const MAX_POSTER_SIDE = 8000;
 
 type Ctx = { supabase: any; userId: string };
 
@@ -45,36 +38,25 @@ const TitleInput = z
     season: z.number().int().min(1).max(100).nullable().default(null),
     episode: z.number().int().min(1).max(1000).nullable().default(null),
     episode_title: z.string().trim().max(200).default(""),
-    synopsis: z.string().trim().min(20, "Synopsis must be at least 20 characters.").max(2000),
-    genres: list(3).min(1, "Add at least one genre."),
+    synopsis: z.string().trim().max(4000).default(""),
+    genres: list(10).default([]),
     cast_members: list(20),
     director: z.string().trim().max(120),
-    country: z.string().trim().min(1, "Country is required.").max(80),
-    language: z.string().trim().min(1, "Language is required.").max(80),
+    country: z.string().trim().max(80).default(""),
+    language: z.string().trim().max(80).default(""),
     runtime: z.string().trim().max(40),
-    maturity: z.string().trim().min(1, "Maturity rating is required.").max(20),
-    year: z.number().int().min(1888).max(new Date().getFullYear() + 3),
+    maturity: z.string().trim().max(20).default(""),
+    year: z.number().int().min(1800).max(3000).default(new Date().getFullYear()),
     premium: z.boolean(),
     published: z.boolean(),
     ad_enabled: z.boolean(),
     ad_placements: z.array(z.enum(["pre_roll", "mid_roll", "post_roll", "banner", "sponsored_card"])).max(5),
-    ad_cues: z.string().trim().max(500),
+    ad_cues: z.string().trim().max(500).default(""),
     ad_notes: z.string().trim().max(2000),
     video_path: z.string().regex(/^videos\/[A-Za-z0-9._-]+$/).nullable().optional(),
     poster_url: z.string().regex(/^posters\/[A-Za-z0-9._-]+$/).nullable().optional(),
     offline_allowed: z.boolean().optional(),
     upload_key: z.string().uuid().optional(),
-  })
-  .superRefine((v, ctx) => {
-    if (v.kind === "series" && (v.season === null || v.episode === null)) {
-      ctx.addIssue({ code: "custom", message: "Series uploads need a season and episode number." });
-    }
-    if (v.ad_cues && !/^(\d{2}:\d{2}:\d{2})(\s*,\s*\d{2}:\d{2}:\d{2})*$/.test(v.ad_cues)) {
-      ctx.addIssue({ code: "custom", message: "Cue points must look like 00:14:30, 00:38:00." });
-    }
-    if (v.published && !v.video_path && !v.id) {
-      ctx.addIssue({ code: "custom", message: "A video file is required before publishing." });
-    }
   });
 
 async function objectInfo(context: Ctx, path: string) {
@@ -124,41 +106,27 @@ export const saveTitle = createServerFn({ method: "POST" })
         : q.ilike("name", data.name).eq("year", data.year);
       const { data: clash } = await q.limit(1);
       if (clash && clash.length) {
-        await removeQuietly(context, [data.video_path, data.poster_url]);
         const existing = clash[0];
         if (existing) return { id: existing.id as string, duplicate: true, existing: existingSummary(existing) };
       }
     }
 
+    // Lenient checks: record what we can, never refuse an upload.
     try {
       const [videoInfo, posterInfo, posterBytes] = await Promise.all([
-        data.video_path ? objectInfo(context, data.video_path) : null,
-        data.poster_url ? objectInfo(context, data.poster_url) : null,
-        data.poster_url ? posterHead(context, data.poster_url) : null,
+        data.video_path ? objectInfo(context, data.video_path).catch(() => null) : null,
+        data.poster_url ? objectInfo(context, data.poster_url).catch(() => null) : null,
+        data.poster_url ? posterHead(context, data.poster_url).catch(() => null) : null,
       ]);
-      if (data.video_path && videoInfo) {
-        const info = videoInfo;
-        const byExt = /\.(mp4|mov|webm|m3u8)$/i.test(data.video_path);
-        if ((info.mimetype && !VIDEO_TYPES.includes(info.mimetype)) || !byExt) throw new Error("Video must be MP4, MOV, WebM or HLS.");
-        if (info.size <= 0 || info.size > MAX_VIDEO) throw new Error("Video must be under 2 GB.");
-        extra["video_bytes"] = info.size;
-      }
-      if (data.poster_url && posterInfo && posterBytes) {
-        const info = posterInfo;
-        if (!POSTER_TYPES.includes(info.mimetype)) throw new Error("Poster must be JPEG, PNG or WebP.");
-        if (info.size <= 0 || info.size > MAX_POSTER) throw new Error("Poster must be under 10 MB.");
-        const size = readImageSize(posterBytes);
-        if (!size || size.type !== info.mimetype) throw new Error("Poster file content does not match its type.");
-        if (size.width < MIN_POSTER_W || size.height < MIN_POSTER_H)
-          throw new Error(`Poster must be at least ${MIN_POSTER_W} by ${MIN_POSTER_H} pixels.`);
-        if (size.width > MAX_POSTER_SIDE || size.height > MAX_POSTER_SIDE)
-          throw new Error(`Poster must be at most ${MAX_POSTER_SIDE} pixels on each side.`);
+      if (videoInfo?.size) extra["video_bytes"] = videoInfo.size;
+      const size = posterBytes ? readImageSize(posterBytes) : null;
+      if (size) {
         extra["poster_width"] = size.width;
         extra["poster_height"] = size.height;
       }
-    } catch (cause) {
-      if (!data.id) await removeQuietly(context, [data.video_path, data.poster_url]);
-      throw cause;
+      void posterInfo;
+    } catch {
+      /* ignore */
     }
 
     const { id, ...fields } = data;
