@@ -32,10 +32,21 @@ const active = new Map<string, TusUpload>();
 const DB = "lovan-uploads";
 function db(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {
-    const r = indexedDB.open(DB, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore("jobs", { keyPath: "id" });
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
+    try {
+      if (typeof window === "undefined" || !("indexedDB" in window) || !window.indexedDB) {
+        return rej(new Error("IndexedDB not available"));
+      }
+      const r = window.indexedDB.open(DB, 1);
+      r.onupgradeneeded = () => {
+        try {
+          r.result.createObjectStore("jobs", { keyPath: "id" });
+        } catch { /* storage init error ignored */ }
+      };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    } catch (e) {
+      rej(e);
+    }
   });
 }
 async function store(fn: (s: IDBObjectStore) => void) {
@@ -223,13 +234,22 @@ async function upload(job: Job): Promise<string> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Your session has ended. Sign in again.");
-  const base = import.meta.env["VITE_SUPABASE_URL"] as string;
-  const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
+  const base = (import.meta.env["VITE_SUPABASE_URL"] || "") as string;
+  const key = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
   const tus = await loadTus();
   await new Promise<void>((resolve, reject) => {
     const up = new tus.Upload(job.file, {
       endpoint: `${base}/storage/v1/upload/resumable`,
       headers: { authorization: `Bearer ${token}`, apikey: key, "x-upsert": "true" },
+      onBeforeRequest: async (req: any) => {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const freshToken = sessionData.session?.access_token;
+          if (freshToken && req?.setHeader) {
+            req.setHeader("authorization", `Bearer ${freshToken}`);
+          }
+        } catch { /* keep existing authorization header */ }
+      },
       metadata: { bucketName: "media", objectName: path, contentType: job.file.type || "application/octet-stream", cacheControl: "3600" },
       retryDelays: [0, 1000, 3000, 5000, 10000, 20000, 30000],
       chunkSize: 6 * 1024 * 1024,
