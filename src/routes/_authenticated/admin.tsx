@@ -167,8 +167,12 @@ function AdminPage() {
       setLanguage(result.language);
       setRuntime(result.runtime);
       setMaturity(result.maturity);
-      setYear(String(result.year));
-      setStatus("Details filled in. Edit anything before you save.");
+      setYear(result.year ? String(result.year) : "");
+      setStatus(
+        result.recognized && result.confidence === "high"
+          ? "Details filled in from a known title. Check them before you save."
+          : "The AI did not confidently recognize this title, so it only used your notes. Fill in cast, director and year yourself, or add more notes (year, country, a lead actor) and try again.",
+      );
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not fill in the details.");
     } finally {
@@ -544,7 +548,14 @@ function AdminPage() {
                 />
               ) : null}
               {uploading ? (
-                <p className="text-xs text-muted-foreground">Uploading files.</p>
+                <div className="space-y-1">
+                  <div className="h-1.5 w-full overflow-hidden rounded-sm bg-surface">
+                    <div className="h-full bg-primary transition-[width]" style={{ width: `${progress}%` }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Uploading files. {progress}%</p>
+                </div>
+              ) : saving ? (
+                <p className="text-xs text-muted-foreground">Checking files and saving.</p>
               ) : null}
             </div>
           </section>
