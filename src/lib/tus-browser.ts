@@ -7,7 +7,8 @@ export type TusUpload = {
   resumeFromPreviousUpload: (prev: unknown) => void;
 };
 
-type TusModule = { Upload: new (file: File, options: Record<string, unknown>) => TusUpload };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TusModule = { Upload: new (file: File, options: any) => TusUpload };
 
 let cached: Promise<TusModule> | null = null;
 

@@ -220,6 +220,7 @@ function AdminPage() {
     const base = import.meta.env["VITE_SUPABASE_URL"] as string;
     const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
     updateStage(stage, { state: "active", progress: 0, detail: "Uploading" });
+    const tus = await loadTus();
     await new Promise<void>(async (resolve, reject) => {
       const upload = new tus.Upload(file, {
         endpoint: `${base}/storage/v1/upload/resumable`,
