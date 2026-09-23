@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/use-account";
 import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
+import { BulkEditBar } from "@/components/site/BulkEditBar";
 import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
 
 export const Route = createFileRoute("/_authenticated/admin_/catalog")({
@@ -73,6 +74,8 @@ function CatalogPage() {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Row | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = (id: string) => setSelected((cur) => { const n = new Set(cur); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
 
   const load = useCallback(async () => {
@@ -190,10 +193,13 @@ function CatalogPage() {
           <p className={`mt-4 text-sm ${message.error ? "text-primary" : "text-muted-foreground"}`}>{message.text}</p>
         ) : null}
 
+        <BulkEditBar rows={rows} selected={selected} setSelected={setSelected} onDone={(text, error) => { setMessage({ text, error }); void load(); }} />
+
         <div className="mt-4 hidden overflow-x-auto rounded-lg border border-border md:block">
           <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase tracking-wide text-muted-foreground">
               <tr className="border-b border-border">
+                <th className="px-4 py-3"><input type="checkbox" aria-label="Select all shown" checked={visible.length > 0 && visible.every((r) => selected.has(r.id))} onChange={(e) => setSelected(e.target.checked ? new Set([...selected, ...visible.map((r) => r.id)]) : new Set())} /></th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Genres</th>
@@ -205,11 +211,12 @@ function CatalogPage() {
             <tbody>
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-muted-foreground">No titles match.</td>
+                  <td colSpan={7} className="px-4 py-6 text-muted-foreground">No titles match.</td>
                 </tr>
               ) : (
                 visible.map((r) => (
                   <tr key={r.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3"><input type="checkbox" aria-label={`Select ${r.name}`} checked={selected.has(r.id)} onChange={() => toggle(r.id)} /></td>
                     <td className="px-4 py-3 text-foreground">{r.name}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {r.kind === "series" ? `${r.series_name || "Series"} S${r.season ?? "?"} E${r.episode ?? "?"}` : "Film"}
@@ -257,7 +264,8 @@ function CatalogPage() {
           {visible.map((r) => (
             <article key={r.id} className="rounded-lg border border-border p-4">
               <div className="flex min-w-0 items-start justify-between gap-3">
-                <div className="min-w-0">
+                <input type="checkbox" className="mt-1 shrink-0" aria-label={`Select ${r.name}`} checked={selected.has(r.id)} onChange={() => toggle(r.id)} />
+                <div className="min-w-0 flex-1">
                   <h2 className="break-words text-sm font-medium text-foreground">{r.name}</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {r.kind === "series" ? `${r.series_name || "Series"} S${r.season ?? "?"} E${r.episode ?? "?"}` : "Film"}

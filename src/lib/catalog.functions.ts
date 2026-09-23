@@ -265,3 +265,46 @@ export const getCatalogAnalytics = createServerFn({ method: "GET" })
         .map(([name, count]) => ({ name, count })),
     };
   });
+
+/** Apply the same changes to many titles at once (any mix of films and series). */
+export const bulkUpdateTitles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      ids: z.array(z.string().uuid()).min(1).max(500),
+      fields: z.object({
+        series_name: z.string().trim().max(200).optional(),
+        season: z.number().int().min(1).max(100).optional(),
+        add_genres: list(3).optional(),
+        country: z.string().trim().max(80).optional(),
+        language: z.string().trim().max(80).optional(),
+        maturity: z.string().trim().max(20).optional(),
+        year: z.number().int().min(1880).max(2100).optional(),
+        premium: z.boolean().optional(),
+        offline_allowed: z.boolean().optional(),
+        published: z.boolean().optional(),
+        archived: z.boolean().optional(),
+      }),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { add_genres, ...rest } = data.fields;
+    const { data: rows, error: readErr } = await context.supabase
+      .from("catalog_titles").select("id, kind, video_path, genres").in("id", data.ids);
+    if (readErr) throw new Error(readErr.message);
+    let updated = 0;
+    let noVideo = 0;
+    for (const row of (rows ?? []) as { id: string; kind: string; video_path: string | null; genres: string[] | null }[]) {
+      const patch: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() };
+      if (row.kind !== "series") { delete patch["series_name"]; delete patch["season"]; }
+      if (add_genres?.length) patch["genres"] = Array.from(new Set([...(row.genres ?? []), ...add_genres])).slice(0, 3);
+      if (rest.published && !row.video_path) { delete patch["published"]; noVideo++; }
+      if (rest.published) patch["archived"] = false;
+      if (rest.archived) patch["published"] = false;
+      const { error } = await context.supabase.from("catalog_titles").update(patch as never).eq("id", row.id);
+      if (error) throw new Error(error.message);
+      updated++;
+    }
+    return { updated, noVideo };
+  });
