@@ -3,7 +3,7 @@ import * as tus from "tus-js-client";
 import { supabase } from "@/integrations/supabase/client";
 import { saveTitle } from "@/lib/catalog.functions";
 
-export type JobState = "waiting" | "uploading" | "saving" | "done" | "failed";
+export type JobState = "waiting" | "uploading" | "saving" | "paused" | "done" | "failed";
 
 export type Job = {
   id: string;
@@ -19,22 +19,47 @@ export type Job = {
   message: string;
   videoPath: string | null;
   titleId: string | null;
+  warnings?: string[];
 };
 
 const MAX_PARALLEL = 3;
 let jobs: Job[] = [];
 const listeners = new Set<() => void>();
+const active = new Map<string, tus.Upload>();
+
+/* ---------- persistence (IndexedDB keeps the file itself, so uploads survive restarts) ---------- */
+const DB = "lovan-uploads";
+function db(): Promise<IDBDatabase> {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("jobs", { keyPath: "id" });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function store(fn: (s: IDBObjectStore) => void) {
+  try {
+    const d = await db();
+    const tx = d.transaction("jobs", "readwrite");
+    fn(tx.objectStore("jobs"));
+  } catch {
+    /* storage unavailable: queue still works in memory */
+  }
+}
+const persist = (j: Job) => store((s) => s.put({ ...j }));
+const unpersist = (id: string) => store((s) => s.delete(id));
 
 function emit() {
   jobs = [...jobs];
   listeners.forEach((l) => l());
 }
 
-function patch(id: string, p: Partial<Job>) {
+function patch(id: string, p: Partial<Job>, save = true) {
   const job = jobs.find((j) => j.id === id);
   if (!job) return;
   Object.assign(job, p);
   emit();
+  if (save) void persist(job);
 }
 
 /** Guess title, season and episode from a file name like "Show.Name.S01E03.mp4". */
@@ -50,28 +75,61 @@ export function guessFromFile(file: File) {
 
 export function addJobs(items: Omit<Job, "id" | "state" | "progress" | "message" | "videoPath" | "titleId">[]) {
   for (const item of items) {
-    jobs.push({ ...item, id: crypto.randomUUID(), state: "waiting", progress: 0, message: "Waiting", videoPath: null, titleId: null });
+    const j: Job = { ...item, id: crypto.randomUUID(), state: "waiting", progress: 0, message: "Waiting", videoPath: null, titleId: null };
+    jobs.push(j);
+    void persist(j);
   }
   emit();
   pump();
 }
 
-export function retryJob(id: string) {
+export function pauseJob(id: string) {
+  const up = active.get(id);
+  if (up) void up.abort(false);
+  active.delete(id);
+  patch(id, { state: "paused", message: "Paused" });
+  pump();
+}
+
+export function resumeJob(id: string) {
   patch(id, { state: "waiting", message: "Waiting" });
   pump();
 }
 
+export function cancelJob(id: string) {
+  const up = active.get(id);
+  if (up) void up.abort(true);
+  active.delete(id);
+  jobs = jobs.filter((j) => j.id !== id);
+  emit();
+  void unpersist(id);
+  pump();
+}
+
+export const retryJob = resumeJob;
+
+export function retryAll() {
+  jobs.filter((j) => j.state === "failed").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
+  pump();
+}
+export function pauseAll() {
+  jobs.filter((j) => j.state === "waiting" || j.state === "uploading").forEach((j) => pauseJob(j.id));
+}
+export function resumeAll() {
+  jobs.filter((j) => j.state === "paused").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
+  pump();
+}
+
 export function clearFinished() {
+  jobs.filter((j) => j.state === "done").forEach((j) => void unpersist(j.id));
   jobs = jobs.filter((j) => j.state !== "done");
   emit();
 }
 
-export function removeJob(id: string) {
-  jobs = jobs.filter((j) => j.id !== id || j.state === "uploading" || j.state === "saving");
-  emit();
-}
+export const removeJob = cancelJob;
 
 function pump() {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return;
   const running = jobs.filter((j) => j.state === "uploading" || j.state === "saving").length;
   const free = MAX_PARALLEL - running;
   jobs.filter((j) => j.state === "waiting").slice(0, Math.max(free, 0)).forEach((j) => void run(j));
@@ -79,7 +137,8 @@ function pump() {
 
 async function upload(job: Job): Promise<string> {
   const safe = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `videos/${Date.now()}-${safe}`;
+  // Path is stable per job so a resumed upload targets the same object.
+  const path = `videos/${job.id.slice(0, 8)}-${safe}`;
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("Your session has ended. Sign in again.");
@@ -88,31 +147,38 @@ async function upload(job: Job): Promise<string> {
   await new Promise<void>((resolve, reject) => {
     const up = new tus.Upload(job.file, {
       endpoint: `${base}/storage/v1/upload/resumable`,
-      headers: { authorization: `Bearer ${token}`, apikey: key, "x-upsert": "false" },
+      headers: { authorization: `Bearer ${token}`, apikey: key, "x-upsert": "true" },
       metadata: { bucketName: "media", objectName: path, contentType: job.file.type || "application/octet-stream", cacheControl: "3600" },
-      retryDelays: [0, 1000, 3000, 5000, 10000, 20000],
+      retryDelays: [0, 1000, 3000, 5000, 10000, 20000, 30000],
       chunkSize: 6 * 1024 * 1024,
       removeFingerprintOnSuccess: true,
+      fingerprint: async () => `lovan-${job.id}`,
       onProgress: (sent, total) => {
         const pct = Math.round((sent / Math.max(total, 1)) * 100);
-        patch(job.id, { progress: pct, message: `Uploading ${pct}%` });
+        const cur = jobs.find((j) => j.id === job.id);
+        if (cur?.state === "uploading") patch(job.id, { progress: pct, message: `Uploading ${pct}%` }, pct % 5 === 0);
       },
       onSuccess: () => resolve(),
       onError: (e) => reject(e),
     });
+    active.set(job.id, up);
     up.findPreviousUploads().then((prev) => {
       if (prev[0]) up.resumeFromPreviousUpload(prev[0]);
       up.start();
     });
   });
+  active.delete(job.id);
   return path;
 }
+
+const stillMine = (id: string, s: JobState) => jobs.find((j) => j.id === id)?.state === s;
 
 async function run(job: Job) {
   try {
     if (!job.videoPath) {
-      patch(job.id, { state: "uploading", message: "Uploading 0%" });
+      patch(job.id, { state: "uploading", message: `Uploading ${job.progress}%` });
       const path = await upload(job);
+      if (!stillMine(job.id, "uploading")) return;
       patch(job.id, { videoPath: path, progress: 100 });
     }
     patch(job.id, { state: "saving", message: "Adding to catalogue" });
@@ -144,13 +210,21 @@ async function run(job: Job) {
         upload_key: job.id,
       },
     });
+    const warnings = "warnings" in res && Array.isArray(res.warnings) ? (res.warnings as string[]) : [];
     patch(job.id, {
       state: "done",
       titleId: res.id,
-      message: res.duplicate ? "Already in the catalogue" : "Saved",
+      warnings,
+      message: res.duplicate ? "Already in the catalogue" : warnings.length ? `Saved. Add later: ${warnings.join(", ")}` : "Saved",
     });
   } catch (e) {
-    patch(job.id, { state: "failed", message: e instanceof Error ? e.message : "Upload stopped. Press Retry." });
+    active.delete(job.id);
+    const cur = jobs.find((j) => j.id === job.id);
+    if (!cur || cur.state === "paused") return;
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    patch(job.id, offline
+      ? { state: "waiting", message: "Waiting for connection" }
+      : { state: "failed", message: e instanceof Error ? e.message : "Upload stopped. Press Retry." });
   } finally {
     pump();
   }
@@ -167,6 +241,31 @@ if (typeof window !== "undefined") {
       e.returnValue = "";
     }
   });
+  window.addEventListener("online", () => {
+    jobs.filter((j) => j.state === "failed").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
+    pump();
+  });
+  window.addEventListener("offline", () => {
+    jobs.filter((j) => j.state === "uploading").forEach((j) => {
+      active.get(j.id)?.abort(false);
+      active.delete(j.id);
+      patch(j.id, { state: "waiting", message: "Waiting for connection" });
+    });
+  });
+  // Restore the queue after an app restart.
+  void db().then((d) => {
+    const r = d.transaction("jobs", "readonly").objectStore("jobs").getAll();
+    r.onsuccess = () => {
+      const saved = (r.result as Job[]).filter((s) => !jobs.some((j) => j.id === s.id));
+      if (!saved.length) return;
+      for (const s of saved) {
+        if (s.state === "uploading" || s.state === "saving") { s.state = "waiting"; s.message = "Resuming"; }
+        jobs.push(s);
+      }
+      emit();
+      pump();
+    };
+  }).catch(() => {});
 }
 
 export function useJobs() {

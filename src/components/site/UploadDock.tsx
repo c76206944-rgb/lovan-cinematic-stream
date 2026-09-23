@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useJobs, retryJob, clearFinished } from "@/lib/upload-queue";
+import { useJobs, retryAll, clearFinished } from "@/lib/upload-queue";
 
 /** Small floating panel that follows you on every page while uploads run. */
 export function UploadDock() {
   const jobs = useJobs();
   const [open, setOpen] = useState(false);
   if (jobs.length === 0) return null;
-  const active = jobs.filter((j) => j.state !== "done" && j.state !== "failed").length;
+  const active = jobs.filter((j) => j.state === "waiting" || j.state === "uploading" || j.state === "saving").length;
   const failed = jobs.filter((j) => j.state === "failed").length;
   const avg = Math.round(jobs.reduce((s, j) => s + (j.state === "done" ? 100 : j.progress), 0) / jobs.length);
   return (
@@ -30,13 +30,12 @@ export function UploadDock() {
                 <p className="truncate">{j.kind === "series" ? `${j.seriesName || j.name} S${j.season}E${j.episode}` : j.name}</p>
                 <p className={`truncate text-xs ${j.state === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{j.message}</p>
               </div>
-              {j.state === "failed" ? (
-                <button type="button" onClick={() => retryJob(j.id)} className="shrink-0 rounded-md border border-border px-2 py-1 text-xs">Retry</button>
-              ) : null}
+              <span className="shrink-0 text-xs text-muted-foreground">{j.state === "done" ? 100 : j.progress}%</span>
             </div>
           ))}
           <div className="flex justify-between pt-2">
-            <Link to="/admin/bulk" className="text-xs text-primary">Open uploads</Link>
+            <Link to="/admin/bulk" className="text-xs text-primary">Manage uploads</Link>
+            {failed ? <button type="button" onClick={retryAll} className="text-xs">Retry all</button> : null}
             <button type="button" onClick={clearFinished} className="text-xs text-muted-foreground">Clear finished</button>
           </div>
         </div>

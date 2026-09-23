@@ -111,6 +111,17 @@ export const saveTitle = createServerFn({ method: "POST" })
       }
     }
 
+    // Security checks stay enforced: files must live in the expected private folders.
+    if (data.video_path && !/^videos\/[\w.\-]+$/.test(data.video_path)) throw new Error("Video path not allowed.");
+    if (data.poster_url && !/^posters\/[\w.\-]+$/.test(data.poster_url)) throw new Error("Poster path not allowed.");
+    // Recoverable metadata issues become warnings instead of errors.
+    const warnings: string[] = [];
+    if (!data.synopsis || data.synopsis.length < 20) warnings.push("Synopsis missing");
+    if (!data.genres?.length) warnings.push("No genres");
+    if (!data.country) warnings.push("No country");
+    if (!data.language) warnings.push("No language");
+    if (!data.poster_url) warnings.push("No poster");
+    if (data.published && !data.video_path) { data.published = false; warnings.push("Saved as draft: no video"); }
     // Lenient checks: record what we can, never refuse an upload.
     try {
       const [videoInfo, posterInfo, posterBytes] = await Promise.all([
@@ -152,7 +163,7 @@ export const saveTitle = createServerFn({ method: "POST" })
           data.poster_url && before.poster_url !== data.poster_url ? before.poster_url : null,
         ]);
       }
-      return { id, duplicate: false, existing: null };
+      return { id, duplicate: false, existing: null, warnings };
     }
     const { data: inserted, error } = await context.supabase
       .from("catalog_titles")
@@ -168,7 +179,7 @@ export const saveTitle = createServerFn({ method: "POST" })
       if (error.code === "23505") throw new Error("This title is already in the catalogue.");
       throw new Error(error.message);
     }
-    return { id: inserted.id as string, duplicate: false, existing: null };
+    return { id: inserted.id as string, duplicate: false, existing: null, warnings };
   });
 
 export const setTitleStatus = createServerFn({ method: "POST" })
