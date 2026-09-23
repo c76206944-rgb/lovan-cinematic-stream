@@ -229,7 +229,7 @@ function AdminPage() {
         retryDelays: [0, 1000, 3000, 5000, 10000],
         chunkSize: 6 * 1024 * 1024,
         removeFingerprintOnSuccess: true,
-        onProgress: (sent, total) => {
+        onProgress: (sent: number, total: number) => {
           const next = Math.round((sent / Math.max(total, 1)) * 100);
           updateStage(stage, { state: "active", progress: next, detail: `Uploading ${next}%` });
         },
@@ -237,7 +237,7 @@ function AdminPage() {
           updateStage(stage, { state: "complete", progress: 100, detail: "Uploaded" });
           resolve();
         },
-        onError: (cause) => {
+        onError: (cause: Error) => {
           updateStage(stage, { state: "failed", detail: "Upload interrupted. Retry to resume." });
           reject(Object.assign(cause, { uploadStage: stage }));
         },

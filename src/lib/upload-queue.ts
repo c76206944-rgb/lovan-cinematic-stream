@@ -235,13 +235,13 @@ async function upload(job: Job): Promise<string> {
       chunkSize: 6 * 1024 * 1024,
       removeFingerprintOnSuccess: true,
       fingerprint: async () => `lovan-${job.id}`,
-      onProgress: (sent, total) => {
+      onProgress: (sent: number, total: number) => {
         const pct = Math.round((sent / Math.max(total, 1)) * 100);
         const cur = jobs.find((j) => j.id === job.id);
         if (cur?.state === "uploading") patch(job.id, { progress: pct, message: `Uploading ${pct}%` }, pct % 5 === 0);
       },
       onSuccess: () => resolve(),
-      onError: (e) => reject(e),
+      onError: (e: unknown) => reject(e),
     });
     active.set(job.id, up);
     up.findPreviousUploads().then((prev) => {

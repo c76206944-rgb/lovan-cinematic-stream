@@ -2,7 +2,7 @@
 // the edge server runtime. Loading it lazily keeps it out of the server bundle.
 export type TusUpload = {
   start: () => void;
-  abort: () => Promise<void>;
+  abort: (shouldTerminate?: boolean) => Promise<void>;
   findPreviousUploads: () => Promise<unknown[]>;
   resumeFromPreviousUpload: (prev: unknown) => void;
 };
