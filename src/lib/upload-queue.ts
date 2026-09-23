@@ -72,7 +72,7 @@ function notify(kind: "success" | "error" | "info", title: string, body: string)
   else toast(title, { description: body });
   if (notificationsSupported() && Notification.permission === "granted" && document.visibilityState === "hidden") {
     const opts = { body, icon: "/icon-192.png", tag: `lovan-${title}` };
-    void navigator.serviceWorker?.getRegistration().then((r) => (r ? r.showNotification(title, opts) : new Notification(title, opts))).catch(() => {
+    void navigator.serviceWorker?.getRegistration().then(async (r) => { if (r) await r.showNotification(title, opts); else new Notification(title, opts); }).catch(() => {
       try { new Notification(title, opts); } catch { /* ignore */ }
     });
   }
