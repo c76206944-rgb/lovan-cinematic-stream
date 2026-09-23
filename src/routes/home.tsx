@@ -22,7 +22,7 @@ export const Route = createFileRoute("/home")({
 });
 
 function HomePage() {
-  const hero = titles[4];
+  const hero = titles[4] as (typeof titles)[number];
 
   return (
     <div className="pb-16">

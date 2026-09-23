@@ -3,8 +3,8 @@ import type { Title } from "@/data/titles";
 
 type Props = {
   title: Title;
-  progress?: number;
-  className?: string;
+  progress?: number | undefined;
+  className?: string | undefined;
 };
 
 export function TitleCard({ title, progress, className }: Props) {

@@ -60,7 +60,7 @@ const faq = [
 ];
 
 function Landing() {
-  const featured = titles[0];
+  const featured = titles[0] as (typeof titles)[number];
 
   return (
     <div>

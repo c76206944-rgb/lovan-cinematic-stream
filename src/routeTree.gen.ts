@@ -14,6 +14,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
 import { Route as CreatorHubRouteImport } from './routes/creator-hub'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as ForYouRouteImport } from './routes/for-you'
 import { Route as GenresRouteImport } from './routes/genres'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HomeRouteImport } from './routes/home'
@@ -52,6 +53,11 @@ const CreatorHubRoute = CreatorHubRouteImport.update({
 const ExploreRoute = ExploreRouteImport.update({
   id: '/explore',
   path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForYouRoute = ForYouRouteImport.update({
+  id: '/for-you',
+  path: '/for-you',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GenresRoute = GenresRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/cookie-policy': typeof CookiePolicyRoute
   '/creator-hub': typeof CreatorHubRoute
   '/explore': typeof ExploreRoute
+  '/for-you': typeof ForYouRoute
   '/genres': typeof GenresRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/cookie-policy': typeof CookiePolicyRoute
   '/creator-hub': typeof CreatorHubRoute
   '/explore': typeof ExploreRoute
+  '/for-you': typeof ForYouRoute
   '/genres': typeof GenresRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/cookie-policy': typeof CookiePolicyRoute
   '/creator-hub': typeof CreatorHubRoute
   '/explore': typeof ExploreRoute
+  '/for-you': typeof ForYouRoute
   '/genres': typeof GenresRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/cookie-policy'
     | '/creator-hub'
     | '/explore'
+    | '/for-you'
     | '/genres'
     | '/help'
     | '/home'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/cookie-policy'
     | '/creator-hub'
     | '/explore'
+    | '/for-you'
     | '/genres'
     | '/help'
     | '/home'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/cookie-policy'
     | '/creator-hub'
     | '/explore'
+    | '/for-you'
     | '/genres'
     | '/help'
     | '/home'
@@ -261,6 +273,7 @@ export interface RootRouteChildren {
   CookiePolicyRoute: typeof CookiePolicyRoute
   CreatorHubRoute: typeof CreatorHubRoute
   ExploreRoute: typeof ExploreRoute
+  ForYouRoute: typeof ForYouRoute
   GenresRoute: typeof GenresRoute
   HelpRoute: typeof HelpRoute
   HomeRoute: typeof HomeRoute
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       path: '/explore'
       fullPath: '/explore'
       preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for-you': {
+      id: '/for-you'
+      path: '/for-you'
+      fullPath: '/for-you'
+      preLoaderRoute: typeof ForYouRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/genres': {
@@ -421,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   CookiePolicyRoute: CookiePolicyRoute,
   CreatorHubRoute: CreatorHubRoute,
   ExploreRoute: ExploreRoute,
+  ForYouRoute: ForYouRoute,
   GenresRoute: GenresRoute,
   HelpRoute: HelpRoute,
   HomeRoute: HomeRoute,
