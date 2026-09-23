@@ -122,6 +122,24 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          ai_language: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_language?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_language?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       removal_requests: {
         Row: {
           accurate: boolean
