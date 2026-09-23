@@ -113,6 +113,17 @@ function AdminPage() {
   const [uploading, setUploading] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (uploading || saving) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [uploading, saving]);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stages, setStages] = useState<Record<SaveStage, StageState>>(initialStages);
@@ -217,14 +228,23 @@ function AdminPage() {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
     if (!token) throw new Error("Your session has ended. Sign in again.");
-    const base = import.meta.env["VITE_SUPABASE_URL"] as string;
-    const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
+    const base = (import.meta.env["VITE_SUPABASE_URL"] || "") as string;
+    const key = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
     updateStage(stage, { state: "active", progress: 0, detail: "Uploading" });
     const tus = await loadTus();
     await new Promise<void>(async (resolve, reject) => {
       const upload = new tus.Upload(file, {
         endpoint: `${base}/storage/v1/upload/resumable`,
         headers: { authorization: `Bearer ${token}`, apikey: key, "x-upsert": "false" },
+        onBeforeRequest: async (req: any) => {
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const freshToken = sessionData.session?.access_token;
+            if (freshToken && req?.setHeader) {
+              req.setHeader("authorization", `Bearer ${freshToken}`);
+            }
+          } catch { /* keep existing authorization header */ }
+        },
         metadata: { bucketName: "media", objectName: path, contentType: file.type || "application/octet-stream", cacheControl: "3600" },
         retryDelays: [0, 1000, 3000, 5000, 10000],
         chunkSize: 6 * 1024 * 1024,
@@ -252,6 +272,7 @@ function AdminPage() {
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
+    event.stopPropagation();
     setError(null);
     setStatus(null);
     setExistingRecord(null);
