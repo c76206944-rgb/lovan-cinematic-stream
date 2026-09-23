@@ -38,6 +38,7 @@ type Row = {
   year: number;
   premium: boolean;
   published: boolean;
+  offline_allowed: boolean;
   archived: boolean;
   ad_enabled: boolean;
   ad_placements: string[];
@@ -132,6 +133,7 @@ function CatalogPage() {
             year: e.year,
             premium: e.premium,
             published: e.published,
+            offline_allowed: e.offline_allowed,
             ad_enabled: e.ad_enabled,
             ad_placements: e.ad_placements as ("pre_roll" | "mid_roll" | "post_roll" | "banner" | "sponsored_card")[],
             ad_cues: e.ad_cues,
@@ -277,6 +279,7 @@ function CatalogPage() {
                 <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.premium} onChange={(e) => patch({ premium: e.target.checked })} />Premium only</label>
                 <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.ad_enabled} onChange={(e) => patch({ ad_enabled: e.target.checked })} />Show adverts to free viewers</label>
                 <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.published} onChange={(e) => patch({ published: e.target.checked })} />Published</label>
+                <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.offline_allowed} onChange={(e) => patch({ offline_allowed: e.target.checked })} />Approved for offline viewing</label>
               </div>
               <button type="submit" disabled={busy === editing.id} className="mt-6 w-full rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {busy === editing.id ? "Saving" : "Save changes"}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeading } from "@/components/site/TitleGrid";
-import { listOffline, removeOffline, type OfflineItem } from "@/lib/offline-store";
+import { listOffline, openForPlayback, removeOffline, type OfflineItem } from "@/lib/offline-store";
 
 export const Route = createFileRoute("/downloads")({
   head: () => ({
@@ -26,14 +26,19 @@ function DownloadsPage() {
   useEffect(load, []);
   useEffect(() => () => { if (playing) URL.revokeObjectURL(playing.url); }, [playing]);
 
-  const play = (item: OfflineItem) => setPlaying({ id: item.id, url: URL.createObjectURL(item.blob) });
+  const [err, setErr] = useState<string | null>(null);
+  const play = (item: OfflineItem) =>
+    void openForPlayback(item.id)
+      .then((url) => { setErr(null); setPlaying({ id: item.id, url }); })
+      .catch((e: unknown) => { setErr(e instanceof Error ? e.message : "Could not play this download."); load(); });
 
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6">
       <PageHeading
         title="Downloads"
-        description="Saved titles play here without a connection. They stay inside LOVAN on this device and cannot be exported or shared."
+        description="Saved titles play here without a connection. They are stored encrypted inside LOVAN on this device, expire after 30 days, and cannot be exported or shared."
       />
+      {err ? <p className="mb-4 text-sm text-primary">{err}</p> : null}
       {playing ? (
         <video
           key={playing.id}
@@ -59,7 +64,7 @@ function DownloadsPage() {
               <div>
                 <p className="text-sm text-foreground">{item.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {(item.bytes / 1024 / 1024).toFixed(0)} MB · saved {new Date(item.savedAt).toLocaleDateString()}
+                  {(item.bytes / 1024 / 1024).toFixed(0)} MB · saved {new Date(item.savedAt).toLocaleDateString()} · expires {new Date(item.expiresAt).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex gap-2">

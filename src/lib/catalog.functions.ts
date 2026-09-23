@@ -46,6 +46,8 @@ const TitleInput = z
     ad_notes: z.string().trim().max(2000),
     video_path: z.string().regex(/^videos\/[A-Za-z0-9._-]+$/).nullable().optional(),
     poster_url: z.string().regex(/^posters\/[A-Za-z0-9._-]+$/).nullable().optional(),
+    offline_allowed: z.boolean().optional(),
+    upload_key: z.string().uuid().optional(),
   })
   .superRefine((v, ctx) => {
     if (v.kind === "series" && (v.season === null || v.episode === null)) {
@@ -93,6 +95,26 @@ export const saveTitle = createServerFn({ method: "POST" })
     await assertStaff(context);
     const extra: Record<string, unknown> = {};
 
+    // Retried saves reuse the same upload key, so a second attempt returns the first record.
+    if (!data.id && data.upload_key) {
+      const { data: existing } = await context.supabase
+        .from("catalog_titles").select("id").eq("upload_key", data.upload_key).maybeSingle();
+      if (existing) return { id: existing.id as string, duplicate: true };
+    }
+    if (!data.id) {
+      let q = context.supabase.from("catalog_titles").select("id").eq("kind", data.kind);
+      q = data.kind === "series"
+        ? q.ilike("series_name", data.series_name || data.name).eq("season", data.season ?? 0).eq("episode", data.episode ?? 0)
+        : q.ilike("name", data.name).eq("year", data.year);
+      const { data: clash } = await q.limit(1);
+      if (clash && clash.length) {
+        await removeQuietly(context, [data.video_path, data.poster_url]);
+        throw new Error(data.kind === "series"
+          ? "This episode is already in the catalogue. Edit it from the Catalogue tab."
+          : "A film with this name and year is already in the catalogue. Edit it from the Catalogue tab.");
+      }
+    }
+
     try {
       const [videoInfo, posterInfo, posterBytes] = await Promise.all([
         data.video_path ? objectInfo(context, data.video_path) : null,
@@ -128,6 +150,8 @@ export const saveTitle = createServerFn({ method: "POST" })
     const row: Record<string, any> = { ...fields, ...extra, updated_at: new Date().toISOString() };
     if (row["video_path"] === undefined) delete row["video_path"];
     if (row["poster_url"] === undefined) delete row["poster_url"];
+    if (row["offline_allowed"] === undefined) delete row["offline_allowed"];
+    if (row["upload_key"] === undefined || id) delete row["upload_key"];
     if (data.kind === "movie") {
       row["season"] = null;
       row["episode"] = null;
@@ -145,15 +169,23 @@ export const saveTitle = createServerFn({ method: "POST" })
           data.poster_url && before.poster_url !== data.poster_url ? before.poster_url : null,
         ]);
       }
-      return { id };
+      return { id, duplicate: false };
     }
     const { data: inserted, error } = await context.supabase
       .from("catalog_titles")
       .insert({ ...row, created_by: context.userId } as never)
       .select("id")
       .single();
-    if (error) throw new Error(error.message);
-    return { id: inserted.id as string };
+    if (error) {
+      if (error.code === "23505" && data.upload_key) {
+        const { data: existing } = await context.supabase
+          .from("catalog_titles").select("id").eq("upload_key", data.upload_key).maybeSingle();
+        if (existing) return { id: existing.id as string, duplicate: true };
+      }
+      if (error.code === "23505") throw new Error("This title is already in the catalogue.");
+      throw new Error(error.message);
+    }
+    return { id: inserted.id as string, duplicate: false };
   });
 
 export const setTitleStatus = createServerFn({ method: "POST" })

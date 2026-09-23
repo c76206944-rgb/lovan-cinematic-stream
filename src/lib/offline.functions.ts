@@ -11,15 +11,15 @@ export const getPublicCatalogTitle = createServerFn({ method: "GET" })
     const { data: row } = await supabaseAdmin
       .from("catalog_titles")
       .select(
-        "id, name, kind, year, country, language, genres, runtime, maturity, premium, synopsis, director, cast_members, video_path, series_name, season, episode",
+        "id, name, kind, year, country, language, genres, runtime, maturity, premium, synopsis, director, cast_members, video_path, offline_allowed, series_name, season, episode",
       )
       .eq("id", data.id)
       .eq("published", true)
       .eq("archived", false)
       .maybeSingle();
     if (!row) return null;
-    const { video_path, ...rest } = row;
-    return { ...rest, hasVideo: Boolean(video_path) };
+    const { video_path, offline_allowed, ...rest } = row;
+    return { ...rest, hasVideo: Boolean(video_path), canDownload: Boolean(video_path) && offline_allowed };
   });
 
 export const getOfflineVideoUrl = createServerFn({ method: "POST" })
@@ -29,10 +29,10 @@ export const getOfflineVideoUrl = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("catalog_titles")
-      .select("video_path, published, archived")
+      .select("video_path, published, archived, offline_allowed")
       .eq("id", data.id)
       .maybeSingle();
-    if (!row || !row.published || row.archived || !row.video_path) {
+    if (!row || !row.published || row.archived || !row.video_path || !row.offline_allowed) {
       throw new Error("This title is not available offline.");
     }
     const { data: signed, error } = await supabaseAdmin.storage

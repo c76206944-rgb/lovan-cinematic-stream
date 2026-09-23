@@ -24,6 +24,10 @@ export const Route = createFileRoute("/terms")({
           body: "All titles are licensed from filmmakers, producers, distributors and authorized rights holders. Availability depends on the rights held for each territory.",
         },
         {
+          heading: "Ownership disclaimer",
+          body: "LOVAN does not own the films and series on the service. They come from different sources, and all rights remain with their respective owners. Owners can ask for a title to be taken down through the Request removal page.",
+        },
+        {
           heading: "Permitted use",
           body: "Streaming is for personal, non-commercial viewing. Recording, redistributing or circumventing access controls is not allowed.",
         },

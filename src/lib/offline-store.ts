@@ -1,37 +1,106 @@
-// Offline copies are kept inside the app's private browser storage.
-// They are only playable inside LOVAN and are never saved as a file on the device.
+// Offline copies are kept inside the app's private browser storage, encrypted with a
+// device key that cannot be read out of the browser. The stored data is not a playable
+// file, so it cannot be exported; it only plays inside LOVAN on this device.
 const DB = "lovan-offline";
 const STORE = "titles";
+const KEYS = "keys";
+export const OFFLINE_DAYS = 30;
 
-export type OfflineItem = { id: string; name: string; bytes: number; savedAt: number; blob: Blob };
+type Stored = {
+  id: string;
+  name: string;
+  bytes: number;
+  savedAt: number;
+  expiresAt: number;
+  type: string;
+  iv: Uint8Array;
+  data: ArrayBuffer;
+};
+export type OfflineItem = Omit<Stored, "iv" | "data">;
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: "id" });
+    const req = indexedDB.open(DB, 2);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE);
+      db.createObjectStore(STORE, { keyPath: "id" });
+      if (!db.objectStoreNames.contains(KEYS)) db.createObjectStore(KEYS);
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
 }
 
-async function run<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T>) {
+async function run<T>(store: string, mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest) {
   const db = await open();
   return new Promise<T>((resolve, reject) => {
-    const req = fn(db.transaction(STORE, mode).objectStore(STORE));
-    req.onsuccess = () => resolve(req.result);
+    const req = fn(db.transaction(store, mode).objectStore(store));
+    req.onsuccess = () => resolve(req.result as T);
     req.onerror = () => reject(req.error);
   });
 }
 
-export const saveOffline = (item: OfflineItem) => run("readwrite", (s) => s.put(item));
-export const getOffline = (id: string) => run<OfflineItem | undefined>("readonly", (s) => s.get(id));
-export const listOffline = () => run<OfflineItem[]>("readonly", (s) => s.getAll());
-export const removeOffline = (id: string) => run("readwrite", (s) => s.delete(id));
+async function deviceKey(): Promise<CryptoKey> {
+  const found = await run<CryptoKey | undefined>(KEYS, "readonly", (s) => s.get("device"));
+  if (found) return found;
+  const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  await run(KEYS, "readwrite", (s) => s.put(key, "device"));
+  return key;
+}
 
-export async function downloadToApp(
-  url: string,
-  onProgress: (pct: number) => void,
-): Promise<Blob> {
+const strip = ({ iv: _iv, data: _d, ...rest }: Stored): OfflineItem => rest;
+
+export async function saveOffline(item: { id: string; name: string; blob: Blob }) {
+  const key = await deviceKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, await item.blob.arrayBuffer());
+  const now = Date.now();
+  const row: Stored = {
+    id: item.id,
+    name: item.name,
+    bytes: item.blob.size,
+    savedAt: now,
+    expiresAt: now + OFFLINE_DAYS * 86400000,
+    type: item.blob.type || "video/mp4",
+    iv,
+    data,
+  };
+  await run(STORE, "readwrite", (s) => s.put(row));
+}
+
+export const removeOffline = (id: string) => run(STORE, "readwrite", (s) => s.delete(id));
+
+export async function getOffline(id: string): Promise<OfflineItem | undefined> {
+  const row = await run<Stored | undefined>(STORE, "readonly", (s) => s.get(id));
+  if (!row) return undefined;
+  if (row.expiresAt < Date.now()) {
+    await removeOffline(id);
+    return undefined;
+  }
+  return strip(row);
+}
+
+export async function listOffline(): Promise<OfflineItem[]> {
+  const rows = await run<Stored[]>(STORE, "readonly", (s) => s.getAll());
+  const live: OfflineItem[] = [];
+  for (const row of rows) {
+    if (row.expiresAt < Date.now()) await removeOffline(row.id);
+    else live.push(strip(row));
+  }
+  return live;
+}
+
+/** Decrypts a saved title in memory for playback. Returns a temporary in-page address. */
+export async function openForPlayback(id: string): Promise<string> {
+  const row = await run<Stored | undefined>(STORE, "readonly", (s) => s.get(id));
+  if (!row || row.expiresAt < Date.now()) throw new Error("This download has expired. Save it again.");
+  const key = await deviceKey();
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: row.iv as Uint8Array<ArrayBuffer> }, key, row.data);
+  return URL.createObjectURL(new Blob([plain], { type: row.type }));
+}
+
+export async function downloadToApp(url: string, onProgress: (pct: number) => void): Promise<Blob> {
   const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error("Download failed.");
   const total = Number(res.headers.get("content-length") ?? 0);

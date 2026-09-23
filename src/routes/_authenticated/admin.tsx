@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { describeTitle } from "@/lib/metadata.functions";
+import { describeTitle, type Suggestion, type FieldKey } from "@/lib/metadata.functions";
 import { saveTitle } from "@/lib/catalog.functions";
 import { AdminTabs } from "@/components/site/AdminTabs";
 
@@ -80,6 +80,11 @@ function AdminPage() {
   const [year, setYear] = useState("");
   const [premium, setPremium] = useState(false);
   const [published, setPublished] = useState(false);
+  const [offlineAllowed, setOfflineAllowed] = useState(false);
+  const [review, setReview] = useState<{ recognized: boolean; matchedTitle: string; confidence: string; items: Suggestion[] } | null>(null);
+  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
+  const uploadKey = useRef<string>(crypto.randomUUID());
+  const uploaded = useRef<{ sig: string; video: string | null; poster: string | null } | null>(null);
 
   const [adEnabled, setAdEnabled] = useState(false);
   const [adPlacements, setAdPlacements] = useState<string[]>([]);
@@ -159,25 +164,25 @@ function AdminPage() {
       const result = await enrich({
         data: { name: name.trim(), kind, notes: notes.trim() },
       });
-      setSynopsis(result.synopsis);
-      setGenres(result.genres.join(", "));
-      setCast(result.cast.join(", "));
-      setDirector(result.director);
-      setCountry(result.country);
-      setLanguage(result.language);
-      setRuntime(result.runtime);
-      setMaturity(result.maturity);
-      setYear(result.year ? String(result.year) : "");
-      setStatus(
-        result.recognized && result.confidence === "high"
-          ? "Details filled in from a known title. Check them before you save."
-          : "The AI did not confidently recognize this title, so it only used your notes. Fill in cast, director and year yourself, or add more notes (year, country, a lead actor) and try again.",
-      );
+      setReview({ recognized: result.recognized, matchedTitle: result.matchedTitle, confidence: result.confidence, items: result.suggestions });
+      setAccepted(Object.fromEntries(result.suggestions.map((x) => [x.key, x.verified && Boolean(x.value)])));
+      setStatus("Review the suggestions below. Nothing is used until you apply it.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not fill in the details.");
     } finally {
       setEnriching(false);
     }
+  };
+
+  const setters: Record<FieldKey, (v: string) => void> = {
+    synopsis: setSynopsis, genres: setGenres, cast: setCast, director: setDirector, country: setCountry,
+    language: setLanguage, runtime: setRuntime, maturity: setMaturity, year: setYear,
+  };
+  const applyReview = () => {
+    if (!review) return;
+    for (const item of review.items) if (accepted[item.key] && item.value) setters[item.key](item.value);
+    setReview(null);
+    setStatus("Applied the selected suggestions. You can still edit every field.");
   };
 
   const uploadFile = async (file: File, folder: string, onProgress: (n: number) => void) => {
@@ -230,14 +235,18 @@ function AdminPage() {
         let pDone = 0;
         const report = () =>
           setProgress(Math.round((vDone * vSize + pDone * pSize) / Math.max(1, vSize + pSize)));
-        [videoPath, posterPath] = await Promise.all([
+        const sig = `${videoFile?.name}:${videoFile?.size}|${posterFile?.name}:${posterFile?.size}`;
+        if (uploaded.current?.sig === sig) {
+          ({ video: videoPath, poster: posterPath } = uploaded.current);
+        } else [videoPath, posterPath] = await Promise.all([
           videoFile ? uploadFile(videoFile, "videos", (n) => { vDone = n; report(); }) : Promise.resolve(null),
           posterFile ? uploadFile(posterFile, "posters", (n) => { pDone = n; report(); }) : Promise.resolve(null),
         ]);
+        uploaded.current = { sig, video: videoPath, poster: posterPath };
         setUploading(false);
       }
 
-      await persist({
+      const saved = await persist({
         data: {
           name: displayName.trim() || name.trim(),
           kind,
@@ -262,10 +271,14 @@ function AdminPage() {
           ad_notes: adNotes.trim(),
           video_path: videoPath,
           poster_url: posterPath,
+          offline_allowed: offlineAllowed,
+          upload_key: uploadKey.current,
         },
       });
 
-      setStatus(published ? "Saved and published." : "Saved as a draft.");
+      setStatus(saved.duplicate ? "This title was already saved. No copy was made." : published ? "Saved and published." : "Saved as a draft.");
+      uploadKey.current = crypto.randomUUID();
+      uploaded.current = null;
       setVideoFile(null);
       setPosterFile(null);
       void loadRows();
@@ -402,6 +415,44 @@ function AdminPage() {
               {enriching ? "Working" : "Fill in details with AI"}
             </button>
           </section>
+
+          {review ? (
+            <section className="rounded-lg border border-primary/40 p-5">
+              <h2 className="text-sm font-medium text-foreground">Review AI suggestions</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {review.recognized ? `Matched: ${review.matchedTitle || "known title"}.` : "Not recognized as a known title."} Overall confidence {review.confidence}. Verified items are ticked. Cast, director and year that could not be confirmed were removed.
+              </p>
+              <ul className="mt-4 divide-y divide-border rounded-md border border-border">
+                {review.items.map((item) => (
+                  <li key={item.key} className="flex gap-3 p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      disabled={!item.value}
+                      checked={Boolean(accepted[item.key])}
+                      onChange={(e) => setAccepted((c) => ({ ...c, [item.key]: e.target.checked }))}
+                      className="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {item.key} · {item.source === "known_title" ? "known title" : item.source} · {item.confidence}
+                        {item.verified ? " · verified" : ""}
+                      </p>
+                      <p className="mt-1 break-words text-foreground">{item.value || "No suggestion"}</p>
+                      {item.warning ? <p className="mt-1 text-xs text-primary">{item.warning}</p> : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 flex gap-2">
+                <button type="button" onClick={applyReview} className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">
+                  Apply selected
+                </button>
+                <button type="button" onClick={() => setReview(null)} className="rounded-md border border-border px-4 py-2 text-sm text-foreground">
+                  Discard
+                </button>
+              </div>
+            </section>
+          ) : null}
 
           <section className="rounded-lg border border-border p-5">
             <h2 className="text-sm font-medium text-foreground">Details</h2>
@@ -579,6 +630,15 @@ function AdminPage() {
                 className="h-4 w-4 accent-[var(--color-primary)]"
               />
               Publish to the catalogue now
+            </label>
+            <label className="mt-3 flex items-center gap-3 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={offlineAllowed}
+                onChange={(event) => setOfflineAllowed(event.target.checked)}
+                className="h-4 w-4 accent-[var(--color-primary)]"
+              />
+              Approve for offline viewing in the app
             </label>
             {error ? <p className="mt-4 text-sm text-primary">{error}</p> : null}
             {status ? <p className="mt-4 text-sm text-muted-foreground">{status}</p> : null}
