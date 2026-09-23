@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import * as tus from "tus-js-client";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { saveTitle } from "@/lib/catalog.functions";
 
 export type JobState = "waiting" | "uploading" | "saving" | "paused" | "done" | "failed";
@@ -54,10 +55,43 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+/* ---------- notifications ---------- */
+const label = (j: Job) => (j.kind === "series" ? `${j.seriesName || j.name} S${j.season}E${j.episode}` : j.name);
+
+export function notificationsSupported() {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+export async function enableBrowserNotifications() {
+  if (!notificationsSupported()) return "unsupported" as const;
+  return Notification.requestPermission();
+}
+
+function notify(kind: "success" | "error" | "info", title: string, body: string) {
+  if (kind === "success") toast.success(title, { description: body });
+  else if (kind === "error") toast.error(title, { description: body });
+  else toast(title, { description: body });
+  if (notificationsSupported() && Notification.permission === "granted" && document.visibilityState === "hidden") {
+    const opts = { body, icon: "/icon-192.png", tag: `lovan-${title}` };
+    void navigator.serviceWorker?.getRegistration().then((r) => (r ? r.showNotification(title, opts) : new Notification(title, opts))).catch(() => {
+      try { new Notification(title, opts); } catch { /* ignore */ }
+    });
+  }
+}
+
+function announce(job: Job, prev: JobState, next: JobState) {
+  if (prev === next) return;
+  if (next === "done") notify("success", "Upload finished", `${label(job)}: ${job.message}`);
+  else if (next === "failed") notify("error", "Upload failed", `${label(job)}: ${job.message}`);
+  else if (next === "paused") notify("info", "Upload paused", label(job));
+  else if (next === "waiting" && prev === "failed") notify("info", "Retrying upload", label(job));
+}
+
 function patch(id: string, p: Partial<Job>, save = true) {
   const job = jobs.find((j) => j.id === id);
   if (!job) return;
+  const prev = job.state;
   Object.assign(job, p);
+  if (p.state) announce(job, prev, p.state);
   emit();
   if (save) void persist(job);
 }
@@ -127,6 +161,31 @@ export function clearFinished() {
 }
 
 export const removeJob = cancelJob;
+
+/** Bytes of video files held on this device by the queue, split by finished and unfinished. */
+export function queueStorage(list: Job[]) {
+  let finished = 0, pending = 0;
+  for (const j of list) (j.state === "done" ? (finished += j.file?.size ?? 0) : (pending += j.file?.size ?? 0));
+  return { finished, pending, total: finished + pending };
+}
+
+/** Removes the temporary copies of finished uploads but keeps them listed as done. */
+export async function freeFinishedFiles() {
+  const done = jobs.filter((j) => j.state === "done");
+  for (const j of done) await unpersist(j.id);
+  jobs = jobs.filter((j) => j.state !== "done");
+  emit();
+  return done.length;
+}
+
+/* ---------- background sync (installed app) ---------- */
+async function requestSync() {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    const sync = (reg as unknown as { sync?: { register: (t: string) => Promise<void> } } | undefined)?.sync;
+    if (sync && isBusy()) await sync.register("lovan-uploads");
+  } catch { /* not supported on this browser */ }
+}
 
 function pump() {
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
@@ -241,11 +300,22 @@ if (typeof window !== "undefined") {
       e.returnValue = "";
     }
   });
+  navigator.serviceWorker?.addEventListener("message", (e) => {
+    if ((e.data as { type?: string } | null)?.type === "lovan-resume-uploads") {
+      jobs.filter((j) => j.state === "failed").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
+      pump();
+    }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") void requestSync();
+    else pump();
+  });
   window.addEventListener("online", () => {
     jobs.filter((j) => j.state === "failed").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
     pump();
   });
   window.addEventListener("offline", () => {
+    void requestSync();
     jobs.filter((j) => j.state === "uploading").forEach((j) => {
       active.get(j.id)?.abort(false);
       active.delete(j.id);
