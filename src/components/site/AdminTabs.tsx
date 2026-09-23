@@ -2,13 +2,14 @@ import { Link } from "@tanstack/react-router";
 
 const tabs = [
   { to: "/admin", label: "Upload" },
+  { to: "/admin/bulk", label: "Upload many" },
   { to: "/admin/catalog", label: "Catalogue" },
   { to: "/admin/analytics", label: "Analytics" },
 ] as const;
 
 export function AdminTabs() {
   return (
-    <nav className="flex gap-1 border-b border-border">
+    <nav className="rail-scroll flex gap-1 overflow-x-auto whitespace-nowrap border-b border-border">
       {tabs.map((tab) => (
         <Link
           key={tab.to}
