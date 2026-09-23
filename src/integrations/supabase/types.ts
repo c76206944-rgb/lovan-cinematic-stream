@@ -34,6 +34,7 @@ export type Database = {
           language: string
           maturity: string
           name: string
+          offline_allowed: boolean
           poster_height: number | null
           poster_url: string | null
           poster_width: number | null
@@ -44,6 +45,7 @@ export type Database = {
           series_name: string
           synopsis: string
           updated_at: string
+          upload_key: string | null
           video_bytes: number | null
           video_path: string | null
           year: number
@@ -67,6 +69,7 @@ export type Database = {
           language?: string
           maturity?: string
           name: string
+          offline_allowed?: boolean
           poster_height?: number | null
           poster_url?: string | null
           poster_width?: number | null
@@ -77,6 +80,7 @@ export type Database = {
           series_name?: string
           synopsis?: string
           updated_at?: string
+          upload_key?: string | null
           video_bytes?: number | null
           video_path?: string | null
           year?: number
@@ -100,6 +104,7 @@ export type Database = {
           language?: string
           maturity?: string
           name?: string
+          offline_allowed?: boolean
           poster_height?: number | null
           poster_url?: string | null
           poster_width?: number | null
@@ -110,6 +115,7 @@ export type Database = {
           series_name?: string
           synopsis?: string
           updated_at?: string
+          upload_key?: string | null
           video_bytes?: number | null
           video_path?: string | null
           year?: number
