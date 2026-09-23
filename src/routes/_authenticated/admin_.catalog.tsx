@@ -7,9 +7,8 @@ import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
 
 export const Route = createFileRoute("/_authenticated/admin_/catalog")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    edit: typeof search.edit === "string" ? search.edit : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { edit?: string } =>
+    typeof search["edit"] === "string" ? { edit: search["edit"] } : {},
   head: () => ({
     meta: [
       { title: "Catalogue editor | LOVAN" },
