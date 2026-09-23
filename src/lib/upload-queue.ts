@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import * as tus from "tus-js-client";
+import { loadTus, type TusUpload } from "@/lib/tus-browser";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { saveTitle } from "@/lib/catalog.functions";
@@ -26,7 +26,7 @@ export type Job = {
 const MAX_PARALLEL = 3;
 let jobs: Job[] = [];
 const listeners = new Set<() => void>();
-const active = new Map<string, tus.Upload>();
+const active = new Map<string, TusUpload>();
 
 /* ---------- persistence (IndexedDB keeps the file itself, so uploads survive restarts) ---------- */
 const DB = "lovan-uploads";
