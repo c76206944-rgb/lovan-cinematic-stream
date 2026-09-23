@@ -60,14 +60,21 @@ const TitleInput = z
   });
 
 async function objectInfo(context: Ctx, path: string) {
-  const slash = path.indexOf("/");
-  const folder = path.slice(0, slash);
-  const file = path.slice(slash + 1);
-  const { data, error } = await context.supabase.storage.from("media").list(folder, { search: file, limit: 5 });
-  if (error) throw new Error(error.message);
-  const hit = (data ?? []).find((item: any) => item.name === file);
-  if (!hit) throw new Error(`Uploaded file not found: ${file}`);
-  return { size: Number(hit.metadata?.size ?? 0), mimetype: String(hit.metadata?.mimetype ?? "") };
+  const { data, error } = await context.supabase.storage.from("media").info(path);
+  if (error || !data) throw new Error(`Uploaded file not found: ${path}`);
+  return {
+    size: Number(data.size ?? data.metadata?.size ?? 0),
+    mimetype: String(data.contentType ?? data.metadata?.mimetype ?? ""),
+  };
+}
+
+async function posterHead(context: Ctx, path: string) {
+  // Only the first 256 KB is needed to read image dimensions.
+  const { data, error } = await context.supabase.storage.from("media").createSignedUrl(path, 60);
+  if (error || !data) throw new Error("Could not read the poster.");
+  const res = await fetch(data.signedUrl, { headers: { Range: "bytes=0-262143" } });
+  if (!res.ok) throw new Error("Could not read the poster.");
+  return new Uint8Array(await res.arrayBuffer());
 }
 
 async function removeQuietly(context: Ctx, paths: (string | null | undefined)[]) {
@@ -87,21 +94,23 @@ export const saveTitle = createServerFn({ method: "POST" })
     const extra: Record<string, unknown> = {};
 
     try {
-      if (data.video_path) {
-        const info = await objectInfo(context, data.video_path);
+      const [videoInfo, posterInfo, posterBytes] = await Promise.all([
+        data.video_path ? objectInfo(context, data.video_path) : null,
+        data.poster_url ? objectInfo(context, data.poster_url) : null,
+        data.poster_url ? posterHead(context, data.poster_url) : null,
+      ]);
+      if (data.video_path && videoInfo) {
+        const info = videoInfo;
         const byExt = /\.(mp4|mov|webm|m3u8)$/i.test(data.video_path);
-        if (!VIDEO_TYPES.includes(info.mimetype) || !byExt) throw new Error("Video must be MP4, MOV, WebM or HLS.");
+        if ((info.mimetype && !VIDEO_TYPES.includes(info.mimetype)) || !byExt) throw new Error("Video must be MP4, MOV, WebM or HLS.");
         if (info.size <= 0 || info.size > MAX_VIDEO) throw new Error("Video must be under 2 GB.");
         extra["video_bytes"] = info.size;
       }
-      if (data.poster_url) {
-        const info = await objectInfo(context, data.poster_url);
+      if (data.poster_url && posterInfo && posterBytes) {
+        const info = posterInfo;
         if (!POSTER_TYPES.includes(info.mimetype)) throw new Error("Poster must be JPEG, PNG or WebP.");
         if (info.size <= 0 || info.size > MAX_POSTER) throw new Error("Poster must be under 10 MB.");
-        const { data: blob, error } = await context.supabase.storage.from("media").download(data.poster_url);
-        if (error || !blob) throw new Error("Could not read the poster.");
-        const bytes = new Uint8Array(await blob.arrayBuffer());
-        const size = readImageSize(bytes);
+        const size = readImageSize(posterBytes);
         if (!size || size.type !== info.mimetype) throw new Error("Poster file content does not match its type.");
         if (size.width < MIN_POSTER_W || size.height < MIN_POSTER_H)
           throw new Error(`Poster must be at least ${MIN_POSTER_W} by ${MIN_POSTER_H} pixels.`);
