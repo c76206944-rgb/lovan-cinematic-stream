@@ -50,6 +50,13 @@
       "when": 1790184759316,
       "tag": "0006_profile_ai_language",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790200402868,
+      "tag": "0007_restrict_title_comments_read",
+      "breakpoints": true
     }
   ]
 }
