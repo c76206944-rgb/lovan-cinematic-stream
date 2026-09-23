@@ -186,8 +186,8 @@ function AdminPage() {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
     if (!token) throw new Error("Your session has ended. Sign in again.");
-    const base = import.meta.env.VITE_SUPABASE_URL as string;
-    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+    const base = import.meta.env["VITE_SUPABASE_URL"] as string;
+    const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
     await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `${base}/storage/v1/object/media/${path}`);
