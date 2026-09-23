@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useJobs, retryAll, queueStorage, freeFinishedFiles, enableBrowserNotifications, notificationsSupported } from "@/lib/upload-queue";
+import { useJobs, retryAll, queueStorage, freeFinishedFiles, enableBrowserNotifications, notificationsSupported, getAlertPrefs, setAlertPrefs, type AlertPrefs, type AlertEvent } from "@/lib/upload-queue";
 
 const size = (b: number) => (b >= 1e9 ? `${(b / 1e9).toFixed(2)} GB` : b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} KB`);
 
@@ -9,6 +9,15 @@ export function UploadDock() {
   const jobs = useJobs();
   const [open, setOpen] = useState(false);
   const [perm, setPerm] = useState<string>("default");
+  const [prefs, setPrefs] = useState<AlertPrefs | null>(null);
+  const [showPrefs, setShowPrefs] = useState(false);
+  useEffect(() => setPrefs(getAlertPrefs()), []);
+  const flip = (e: AlertEvent, k: "app" | "browser") => {
+    if (!prefs) return;
+    const next = { ...prefs, [e]: { ...prefs[e], [k]: !prefs[e][k] } };
+    setPrefs(next);
+    setAlertPrefs(next);
+  };
   const [free, setFree] = useState<number | null>(null);
   useEffect(() => {
     if (notificationsSupported()) setPerm(Notification.permission);
@@ -55,6 +64,21 @@ export function UploadDock() {
             <button type="button" disabled={perm === "denied"} onClick={() => void enableBrowserNotifications().then((p) => setPerm(String(p)))} className="mt-2 text-xs text-primary disabled:opacity-50">
               {perm === "denied" ? "Notifications blocked in browser settings" : "Notify me when uploads finish or fail"}
             </button>
+          ) : null}
+          <button type="button" onClick={() => setShowPrefs(!showPrefs)} className="mt-2 block text-xs text-primary">Alert settings</button>
+          {showPrefs && prefs ? (
+            <table className="mt-1 w-full text-xs">
+              <thead className="text-muted-foreground"><tr><th className="text-left font-normal">Event</th><th className="font-normal">In app</th><th className="font-normal">Browser</th></tr></thead>
+              <tbody>
+                {([["done", "Finished"], ["failed", "Failed"], ["paused", "Paused"], ["retry", "Retrying"]] as [AlertEvent, string][]).map(([e, l]) => (
+                  <tr key={e}>
+                    <td className="py-1">{l}</td>
+                    <td className="text-center"><input type="checkbox" aria-label={`${l} in app`} checked={prefs[e].app} onChange={() => flip(e, "app")} /></td>
+                    <td className="text-center"><input type="checkbox" aria-label={`${l} browser`} checked={prefs[e].browser} onChange={() => flip(e, "browser")} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ) : null}
           <div className="flex justify-between pt-2">
             <Link to="/admin/bulk" className="text-xs text-primary">Manage uploads</Link>

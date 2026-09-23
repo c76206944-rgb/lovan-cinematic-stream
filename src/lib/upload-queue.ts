@@ -66,11 +66,33 @@ export async function enableBrowserNotifications() {
   return Notification.requestPermission();
 }
 
-function notify(kind: "success" | "error" | "info", title: string, body: string) {
+export type AlertEvent = "done" | "failed" | "paused" | "retry";
+export type AlertPrefs = Record<AlertEvent, { app: boolean; browser: boolean }>;
+const PREFS_KEY = "lovan-upload-alerts";
+const defaultPrefs: AlertPrefs = {
+  done: { app: true, browser: true },
+  failed: { app: true, browser: true },
+  paused: { app: true, browser: false },
+  retry: { app: true, browser: false },
+};
+export function getAlertPrefs(): AlertPrefs {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    return raw ? { ...defaultPrefs, ...(JSON.parse(raw) as Partial<AlertPrefs>) } : defaultPrefs;
+  } catch { return defaultPrefs; }
+}
+export function setAlertPrefs(p: AlertPrefs) {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch { /* ignore */ }
+}
+
+function notify(event: AlertEvent, kind: "success" | "error" | "info", title: string, body: string) {
+  const pref = getAlertPrefs()[event];
+  if (pref.app) {
   if (kind === "success") toast.success(title, { description: body });
   else if (kind === "error") toast.error(title, { description: body });
   else toast(title, { description: body });
-  if (notificationsSupported() && Notification.permission === "granted" && document.visibilityState === "hidden") {
+  }
+  if (pref.browser && notificationsSupported() && Notification.permission === "granted" && document.visibilityState === "hidden") {
     const opts = { body, icon: "/icon-192.png", tag: `lovan-${title}` };
     void navigator.serviceWorker?.getRegistration().then(async (r) => { if (r) await r.showNotification(title, opts); else new Notification(title, opts); }).catch(() => {
       try { new Notification(title, opts); } catch { /* ignore */ }
@@ -80,10 +102,10 @@ function notify(kind: "success" | "error" | "info", title: string, body: string)
 
 function announce(job: Job, prev: JobState, next: JobState) {
   if (prev === next) return;
-  if (next === "done") notify("success", "Upload finished", `${label(job)}: ${job.message}`);
-  else if (next === "failed") notify("error", "Upload failed", `${label(job)}: ${job.message}`);
-  else if (next === "paused") notify("info", "Upload paused", label(job));
-  else if (next === "waiting" && prev === "failed") notify("info", "Retrying upload", label(job));
+  if (next === "done") notify("done", "success", "Upload finished", `${label(job)}: ${job.message}`);
+  else if (next === "failed") notify("failed", "error", "Upload failed", `${label(job)}: ${job.message}`);
+  else if (next === "paused") notify("paused", "info", "Upload paused", label(job));
+  else if (next === "waiting" && prev === "failed") notify("retry", "info", "Retrying upload", label(job));
 }
 
 function patch(id: string, p: Partial<Job>, save = true) {
