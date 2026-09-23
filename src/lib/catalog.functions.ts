@@ -116,7 +116,7 @@ export const saveTitle = createServerFn({ method: "POST" })
     }
 
     const { id, ...fields } = data;
-    const row: Record<string, unknown> = { ...fields, ...extra, updated_at: new Date().toISOString() };
+    const row: Record<string, any> = { ...fields, ...extra, updated_at: new Date().toISOString() };
     if (row["video_path"] === undefined) delete row["video_path"];
     if (row["poster_url"] === undefined) delete row["poster_url"];
     if (data.kind === "movie") {
@@ -128,7 +128,7 @@ export const saveTitle = createServerFn({ method: "POST" })
 
     if (id) {
       const { data: before } = await context.supabase.from("catalog_titles").select("video_path, poster_url").eq("id", id).single();
-      const { error } = await context.supabase.from("catalog_titles").update(row).eq("id", id);
+      const { error } = await context.supabase.from("catalog_titles").update(row as never).eq("id", id);
       if (error) throw new Error(error.message);
       if (before) {
         await removeQuietly(context, [
@@ -140,7 +140,7 @@ export const saveTitle = createServerFn({ method: "POST" })
     }
     const { data: inserted, error } = await context.supabase
       .from("catalog_titles")
-      .insert({ ...row, created_by: context.userId })
+      .insert({ ...row, created_by: context.userId } as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
