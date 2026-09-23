@@ -133,6 +133,7 @@ function CatalogPage() {
             year: e.year,
             premium: e.premium,
             published: e.published,
+            offline_allowed: e.offline_allowed,
             ad_enabled: e.ad_enabled,
             ad_placements: e.ad_placements as ("pre_roll" | "mid_roll" | "post_roll" | "banner" | "sponsored_card")[],
             ad_cues: e.ad_cues,
