@@ -26,13 +26,13 @@ const mobileLinks = [
 export function Header() {
   const account = useAccount();
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/92 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] border-b border-border bg-background/92 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-6 px-4 sm:px-6">
         <Link to="/" className="font-display text-lg font-semibold tracking-[0.22em] text-primary">
           LOVAN
         </Link>
 
-        <nav className="hidden flex-1 items-center gap-5 lg:flex">
+        <nav className="hidden min-w-0 flex-1 items-center gap-4 overflow-x-auto whitespace-nowrap rail-scroll xl:gap-5 lg:flex">
           {desktopLinks.map((link) => (
             <Link
               key={link.to}
@@ -45,7 +45,7 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           <Link
             to="/search"
             aria-label="Search"
@@ -84,13 +84,13 @@ export function Header() {
 
 export function MobileNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] lg:hidden">
       <ul className="mx-auto flex max-w-lg items-center justify-between px-2 py-2">
         {mobileLinks.map((link) => (
           <li key={link.to}>
             <Link
               to={link.to}
-              className="flex w-16 flex-col items-center gap-1 py-1 text-[11px] text-muted-foreground"
+              className="flex w-14 flex-col sm:w-16 items-center gap-1 py-1 text-[11px] text-muted-foreground"
               activeProps={{ className: "text-primary" }}
             >
               <link.icon className="size-5" strokeWidth={1.5} />

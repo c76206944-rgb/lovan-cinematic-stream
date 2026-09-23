@@ -76,6 +76,29 @@
 
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  a,
+  span,
+  li,
+  td {
+    overflow-wrap: anywhere;
+  }
+
+  img,
+  video {
+    max-width: 100%;
   }
 
   body {

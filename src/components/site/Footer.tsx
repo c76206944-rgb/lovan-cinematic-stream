@@ -16,7 +16,7 @@ const links = [
 
 export function Footer() {
   return (
-    <footer className="mt-24 border-t border-border pb-24 lg:pb-0">
+    <footer className="mt-24 border-t border-border pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto max-w-[1600px] px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <span className="font-display text-sm font-semibold tracking-[0.22em] text-primary">

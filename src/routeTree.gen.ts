@@ -36,6 +36,7 @@ import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as TitleTitleIdRouteImport } from './routes/title.$titleId'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin_.analytics'
+import { Route as AuthenticatedAdminBulkRouteImport } from './routes/_authenticated/admin_.bulk'
 import { Route as AuthenticatedAdminCatalogRouteImport } from './routes/_authenticated/admin_.catalog'
 
 const IndexRoute = IndexRouteImport.update({
@@ -173,6 +174,11 @@ const AuthenticatedAdminAnalyticsRoute =
     path: '/admin/analytics',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminBulkRoute = AuthenticatedAdminBulkRouteImport.update({
+  id: '/admin_/bulk',
+  path: '/admin/bulk',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminCatalogRoute =
   AuthenticatedAdminCatalogRouteImport.update({
     id: '/admin_/catalog',
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/title/$titleId': typeof TitleTitleIdRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/bulk': typeof AuthenticatedAdminBulkRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
 }
 export interface FileRoutesByTo {
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/title/$titleId': typeof TitleTitleIdRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/bulk': typeof AuthenticatedAdminBulkRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
 }
 export interface FileRoutesById {
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/title/$titleId': typeof TitleTitleIdRoute
   '/_authenticated/admin_/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin_/bulk': typeof AuthenticatedAdminBulkRoute
   '/_authenticated/admin_/catalog': typeof AuthenticatedAdminCatalogRoute
 }
 export interface FileRouteTypes {
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/title/$titleId'
     | '/admin/analytics'
+    | '/admin/bulk'
     | '/admin/catalog'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/title/$titleId'
     | '/admin/analytics'
+    | '/admin/bulk'
     | '/admin/catalog'
   id:
     | '__root__'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/title/$titleId'
     | '/_authenticated/admin_/analytics'
+    | '/_authenticated/admin_/bulk'
     | '/_authenticated/admin_/catalog'
   fileRoutesById: FileRoutesById
 }
@@ -579,6 +591,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin_/bulk': {
+      id: '/_authenticated/admin_/bulk'
+      path: '/admin/bulk'
+      fullPath: '/admin/bulk'
+      preLoaderRoute: typeof AuthenticatedAdminBulkRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin_/catalog': {
       id: '/_authenticated/admin_/catalog'
       path: '/admin/catalog'
@@ -592,12 +611,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminBulkRoute: typeof AuthenticatedAdminBulkRoute
   AuthenticatedAdminCatalogRoute: typeof AuthenticatedAdminCatalogRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminBulkRoute: AuthenticatedAdminBulkRoute,
   AuthenticatedAdminCatalogRoute: AuthenticatedAdminCatalogRoute,
 }
 
