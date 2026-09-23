@@ -6,7 +6,7 @@ import { describeTitle, type Suggestion, type FieldKey } from "@/lib/metadata.fu
 import { saveTitle } from "@/lib/catalog.functions";
 import { AdminTabs } from "@/components/site/AdminTabs";
 import { Button } from "@/components/ui/button";
-import * as tus from "tus-js-client";
+import { loadTus } from "@/lib/tus-browser";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
