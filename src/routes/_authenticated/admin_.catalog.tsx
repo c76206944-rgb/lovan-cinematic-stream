@@ -151,6 +151,8 @@ function CatalogPage() {
             ad_placements: e.ad_placements as ("pre_roll" | "mid_roll" | "post_roll" | "banner" | "sponsored_card")[],
             ad_cues: e.ad_cues,
             ad_notes: e.ad_notes,
+            poster_url: e.poster_url,
+            video_path: e.video_path,
           },
         }).then(() => setEditing(null)),
       "Changes saved.",
