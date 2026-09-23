@@ -338,7 +338,7 @@ const seeds: Seed[] = [
 
 export const titles: Title[] = seeds.map((seed, index) => ({
   ...seed,
-  image: images[index % images.length],
+  image: images[index % images.length] as string,
 }));
 
 export const getTitle = (id: string) => titles.find((t) => t.id === id);
