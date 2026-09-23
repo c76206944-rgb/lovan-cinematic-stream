@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/use-account";
 import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { BulkEditBar } from "@/components/site/BulkEditBar";
+import { PosterField } from "@/components/site/PosterField";
 import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
 
 export const Route = createFileRoute("/_authenticated/admin_/catalog")({
@@ -322,6 +323,7 @@ function CatalogPage() {
                 <L label="Runtime"><input className={inputClass} value={editing.runtime} onChange={(e) => patch({ runtime: e.target.value })} /></L>
                 <L label="Maturity"><input className={inputClass} value={editing.maturity} onChange={(e) => patch({ maturity: e.target.value })} /></L>
                 <L label="Mid roll cue points" wide><input className={inputClass} value={editing.ad_cues} onChange={(e) => patch({ ad_cues: e.target.value })} /></L>
+                <PosterField posterPath={editing.poster_url} onChange={(path) => patch({ poster_url: path })} />
               </div>
               <div className="mt-5 space-y-3 text-sm text-foreground">
                 <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.premium} onChange={(e) => patch({ premium: e.target.checked })} />Premium only</label>
