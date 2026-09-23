@@ -105,8 +105,8 @@ function ProfilePage() {
             Open the upload studio
           </Link>
         ) : (
-          <Link to="/premium" className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-            Upgrade to Premium
+          <Link to="/home" className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
+            Start watching
           </Link>
         )}
         <button type="button" onClick={signOut} className="rounded-md border border-border px-5 py-2.5 text-sm text-foreground hover:border-primary">

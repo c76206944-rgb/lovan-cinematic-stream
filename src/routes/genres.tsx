@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { genres, titles } from "@/data/titles";
+import { collapseSeries, uniq } from "@/data/titles";
+import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
 export const Route = createFileRoute("/genres")({
@@ -16,8 +17,12 @@ export const Route = createFileRoute("/genres")({
 });
 
 function GenresPage() {
-  const [active, setActive] = useState<string>(genres[0] ?? "Drama");
-  const items = titles.filter((t) => t.genres.includes(active));
+  const { titles: all } = useCatalog();
+  const titles = collapseSeries(all);
+  const genres = uniq(titles.flatMap((t) => t.genres));
+  const [active, setActive] = useState<string>("");
+  const current = active || genres[0] || "";
+  const items = titles.filter((t) => t.genres.includes(current));
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
@@ -29,7 +34,7 @@ function GenresPage() {
             type="button"
             onClick={() => setActive(genre)}
             className={`rounded-sm border px-3 py-1.5 text-xs transition-colors ${
-              genre === active
+              genre === current
                 ? "border-primary text-primary"
                 : "border-border text-muted-foreground hover:text-foreground"
             }`}

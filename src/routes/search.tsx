@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { titles } from "@/data/titles";
+import { collapseSeries, matchesSearch } from "@/data/titles";
+import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
 export const Route = createFileRoute("/search")({
@@ -16,16 +17,11 @@ export const Route = createFileRoute("/search")({
 });
 
 function SearchPage() {
+  const { titles: all } = useCatalog();
+  const titles = collapseSeries(all);
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
-  const items = q
-    ? titles.filter((t) =>
-        [t.name, t.country, t.language, t.director, ...t.genres, ...t.cast]
-          .join(" ")
-          .toLowerCase()
-          .includes(q),
-      )
-    : titles;
+  const items = q ? collapseSeries(all.filter((t) => matchesSearch(t, q))) : titles;
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">

@@ -17,7 +17,7 @@ export const Route = createFileRoute("/privacy")({
       sections={[
         {
           heading: "What we collect",
-          body: "Account details, viewing history used for resume and recommendations, device and playback diagnostics, and payment status for Premium.",
+          body: "Account details, viewing history used for resume and recommendations, device and playback diagnostics.",
         },
         {
           heading: "Why we collect it",

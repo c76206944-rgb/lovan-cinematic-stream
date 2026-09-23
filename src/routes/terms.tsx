@@ -33,7 +33,7 @@ export const Route = createFileRoute("/terms")({
         },
         {
           heading: "Plans and payment",
-          body: "Prices are set per country and currency. Premium renews until cancelled and can be cancelled at any time.",
+          body: "LOVAN is free to watch and is supported by advertising.",
         },
         {
           heading: "Changes",

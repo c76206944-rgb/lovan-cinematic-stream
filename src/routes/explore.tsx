@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { countries, genres, languages, titles } from "@/data/titles";
+import { collapseSeries, uniq } from "@/data/titles";
+import { useCatalog } from "@/lib/use-catalog";
 import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 
 export const Route = createFileRoute("/explore")({
@@ -18,9 +19,14 @@ export const Route = createFileRoute("/explore")({
   component: ExplorePage,
 });
 
-const kinds = ["all", "movie", "series", "documentary", "short"] as const;
+const kinds = ["all", "movie", "series"] as const;
 
 function ExplorePage() {
+  const { titles: all } = useCatalog();
+  const titles = collapseSeries(all);
+  const genres = uniq(titles.flatMap((t) => t.genres));
+  const countries = uniq(titles.map((t) => t.country));
+  const languages = uniq(titles.map((t) => t.language));
   const [kind, setKind] = useState<string>("all");
   const [genre, setGenre] = useState<string>("all");
   const [country, setCountry] = useState<string>("all");

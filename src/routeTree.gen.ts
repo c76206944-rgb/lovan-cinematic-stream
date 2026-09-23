@@ -14,7 +14,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
-import { Route as DonateRouteImport } from './routes/donate'
 import { Route as DownloadsRouteImport } from './routes/downloads'
 import { Route as ExploreRouteImport } from './routes/explore'
 import { Route as ForYouRouteImport } from './routes/for-you'
@@ -24,7 +23,6 @@ import { Route as HomeRouteImport } from './routes/home'
 import { Route as MoviesRouteImport } from './routes/movies'
 import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as NewReleasesRouteImport } from './routes/new-releases'
-import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RemovalRequestRouteImport } from './routes/removal-request'
@@ -61,11 +59,6 @@ const ContactRoute = ContactRouteImport.update({
 const CookiePolicyRoute = CookiePolicyRouteImport.update({
   id: '/cookie-policy',
   path: '/cookie-policy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DonateRoute = DonateRouteImport.update({
-  id: '/donate',
-  path: '/donate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DownloadsRoute = DownloadsRouteImport.update({
@@ -111,11 +104,6 @@ const MyListRoute = MyListRouteImport.update({
 const NewReleasesRoute = NewReleasesRouteImport.update({
   id: '/new-releases',
   path: '/new-releases',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PremiumRoute = PremiumRouteImport.update({
-  id: '/premium',
-  path: '/premium',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -191,7 +179,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
-  '/donate': typeof DonateRoute
   '/downloads': typeof DownloadsRoute
   '/explore': typeof ExploreRoute
   '/for-you': typeof ForYouRoute
@@ -201,7 +188,6 @@ export interface FileRoutesByFullPath {
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
-  '/premium': typeof PremiumRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/removal-request': typeof RemovalRequestRoute
@@ -221,7 +207,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
-  '/donate': typeof DonateRoute
   '/downloads': typeof DownloadsRoute
   '/explore': typeof ExploreRoute
   '/for-you': typeof ForYouRoute
@@ -231,7 +216,6 @@ export interface FileRoutesByTo {
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
-  '/premium': typeof PremiumRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/removal-request': typeof RemovalRequestRoute
@@ -253,7 +237,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
-  '/donate': typeof DonateRoute
   '/downloads': typeof DownloadsRoute
   '/explore': typeof ExploreRoute
   '/for-you': typeof ForYouRoute
@@ -263,7 +246,6 @@ export interface FileRoutesById {
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
-  '/premium': typeof PremiumRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/removal-request': typeof RemovalRequestRoute
@@ -285,7 +267,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/cookie-policy'
-    | '/donate'
     | '/downloads'
     | '/explore'
     | '/for-you'
@@ -295,7 +276,6 @@ export interface FileRouteTypes {
     | '/movies'
     | '/my-list'
     | '/new-releases'
-    | '/premium'
     | '/privacy'
     | '/profile'
     | '/removal-request'
@@ -315,7 +295,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/cookie-policy'
-    | '/donate'
     | '/downloads'
     | '/explore'
     | '/for-you'
@@ -325,7 +304,6 @@ export interface FileRouteTypes {
     | '/movies'
     | '/my-list'
     | '/new-releases'
-    | '/premium'
     | '/privacy'
     | '/profile'
     | '/removal-request'
@@ -346,7 +324,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/cookie-policy'
-    | '/donate'
     | '/downloads'
     | '/explore'
     | '/for-you'
@@ -356,7 +333,6 @@ export interface FileRouteTypes {
     | '/movies'
     | '/my-list'
     | '/new-releases'
-    | '/premium'
     | '/privacy'
     | '/profile'
     | '/removal-request'
@@ -378,7 +354,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   CookiePolicyRoute: typeof CookiePolicyRoute
-  DonateRoute: typeof DonateRoute
   DownloadsRoute: typeof DownloadsRoute
   ExploreRoute: typeof ExploreRoute
   ForYouRoute: typeof ForYouRoute
@@ -388,7 +363,6 @@ export interface RootRouteChildren {
   MoviesRoute: typeof MoviesRoute
   MyListRoute: typeof MyListRoute
   NewReleasesRoute: typeof NewReleasesRoute
-  PremiumRoute: typeof PremiumRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   RemovalRequestRoute: typeof RemovalRequestRoute
@@ -435,13 +409,6 @@ declare module '@tanstack/react-router' {
       path: '/cookie-policy'
       fullPath: '/cookie-policy'
       preLoaderRoute: typeof CookiePolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/donate': {
-      id: '/donate'
-      path: '/donate'
-      fullPath: '/donate'
-      preLoaderRoute: typeof DonateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/downloads': {
@@ -505,13 +472,6 @@ declare module '@tanstack/react-router' {
       path: '/new-releases'
       fullPath: '/new-releases'
       preLoaderRoute: typeof NewReleasesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/premium': {
-      id: '/premium'
-      path: '/premium'
-      fullPath: '/premium'
-      preLoaderRoute: typeof PremiumRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -631,7 +591,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   CookiePolicyRoute: CookiePolicyRoute,
-  DonateRoute: DonateRoute,
   DownloadsRoute: DownloadsRoute,
   ExploreRoute: ExploreRoute,
   ForYouRoute: ForYouRoute,
@@ -641,7 +600,6 @@ const rootRouteChildren: RootRouteChildren = {
   MoviesRoute: MoviesRoute,
   MyListRoute: MyListRoute,
   NewReleasesRoute: NewReleasesRoute,
-  PremiumRoute: PremiumRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   RemovalRequestRoute: RemovalRequestRoute,

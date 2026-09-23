@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, Output } from "ai";
 import { z } from "zod";
-import { titles } from "@/data/titles";
+import { getCatalog } from "@/lib/public-catalog.functions";
 
 const Input = z.object({ query: z.string().min(3).max(600) });
 
@@ -22,18 +22,19 @@ export const recommendTitles = createServerFn({ method: "POST" })
     const key = process.env["LOVABLE_API_KEY"];
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
+    const titles = await getCatalog();
     const catalogue = titles.map((t) => ({
       id: t.id,
-      name: t.name,
+      name: t.kind === "series" && t.episodeTitle ? `${t.name}: ${t.episodeTitle}` : t.name,
+      cast: t.cast,
+      director: t.director,
       year: t.year,
       kind: t.kind,
       country: t.country,
       language: t.language,
       genres: t.genres,
       runtime: t.runtime,
-      rating: t.rating,
       maturity: t.maturity,
-      premium: t.premium,
       synopsis: t.synopsis,
     }));
 

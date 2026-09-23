@@ -29,7 +29,7 @@ export const Route = createFileRoute("/cookie-policy")({
         },
         {
           heading: "Advertising",
-          body: "On the free tier, used to control how often advertising is shown. Premium does not show advertising.",
+          body: "Used to control how often advertising is shown.",
         },
       ]}
     />
