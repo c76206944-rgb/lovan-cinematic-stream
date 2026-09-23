@@ -302,7 +302,7 @@ export const bulkUpdateTitles = createServerFn({ method: "POST" })
       if (rest.published && !row.video_path) { delete patch["published"]; noVideo++; }
       if (rest.published) patch["archived"] = false;
       if (rest.archived) patch["published"] = false;
-      const { error } = await context.supabase.from("catalog_titles").update(patch).eq("id", row.id);
+      const { error } = await context.supabase.from("catalog_titles").update(patch as never).eq("id", row.id);
       if (error) throw new Error(error.message);
       updated++;
     }
