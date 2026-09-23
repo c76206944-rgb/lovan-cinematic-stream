@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Header, MobileNav } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { UploadDock } from "@/components/site/UploadDock";
+import { Toaster } from "@/components/ui/sonner";
 
 
 function NotFoundComponent() {
@@ -140,6 +141,17 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+    const inFrame = window.self !== window.top;
+    const preview = /id-preview--|lovableproject\.com/.test(location.hostname);
+    if (inFrame || preview) {
+      void navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => void r.unregister()));
+      return;
+    }
+    void navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex min-h-dvh flex-col overflow-x-clip">
@@ -151,6 +163,7 @@ function RootComponent() {
         <Footer />
         <MobileNav />
         <UploadDock />
+        <Toaster position="top-center" />
       </div>
     </QueryClientProvider>
   );
