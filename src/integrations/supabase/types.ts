@@ -16,13 +16,17 @@ export type Database = {
     Tables: {
       catalog_titles: {
         Row: {
+          ad_cues: string
           ad_enabled: boolean
           ad_notes: string
+          ad_placements: string[]
           cast_members: string[]
           country: string
           created_at: string
           created_by: string | null
           director: string
+          episode: number | null
+          episode_title: string
           genres: string[]
           id: string
           kind: string
@@ -33,18 +37,24 @@ export type Database = {
           premium: boolean
           published: boolean
           runtime: string
+          season: number | null
+          series_name: string
           synopsis: string
           video_path: string | null
           year: number
         }
         Insert: {
+          ad_cues?: string
           ad_enabled?: boolean
           ad_notes?: string
+          ad_placements?: string[]
           cast_members?: string[]
           country?: string
           created_at?: string
           created_by?: string | null
           director?: string
+          episode?: number | null
+          episode_title?: string
           genres?: string[]
           id?: string
           kind?: string
@@ -55,18 +65,24 @@ export type Database = {
           premium?: boolean
           published?: boolean
           runtime?: string
+          season?: number | null
+          series_name?: string
           synopsis?: string
           video_path?: string | null
           year?: number
         }
         Update: {
+          ad_cues?: string
           ad_enabled?: boolean
           ad_notes?: string
+          ad_placements?: string[]
           cast_members?: string[]
           country?: string
           created_at?: string
           created_by?: string | null
           director?: string
+          episode?: number | null
+          episode_title?: string
           genres?: string[]
           id?: string
           kind?: string
@@ -77,6 +93,8 @@ export type Database = {
           premium?: boolean
           published?: boolean
           runtime?: string
+          season?: number | null
+          series_name?: string
           synopsis?: string
           video_path?: string | null
           year?: number
