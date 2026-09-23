@@ -16,6 +16,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
       { property: "og:title", content: "Upload studio | LOVAN" },
       { property: "og:description", content: "LOVAN admin upload studio." },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AdminPage,
@@ -109,7 +111,6 @@ function AdminPage() {
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [enriching, setEnriching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -134,8 +135,10 @@ function AdminPage() {
       const { data: userData } = await supabase.auth.getUser();
       if (!active) return;
       setEmail(userData.user?.email ?? "");
-      const savedLanguage = userData.user?.user_metadata?.["ai_language"];
-      if (typeof savedLanguage === "string") setAiLanguage(savedLanguage);
+      if (userData.user?.id) {
+        const { data: profile } = await supabase.from("profiles").select("ai_language").eq("user_id", userData.user.id).maybeSingle();
+        if (profile?.ai_language) setAiLanguage(profile.ai_language);
+      }
       await supabase.rpc("claim_owner_admin");
       const { data: isStaff } = await supabase.rpc("is_staff", {
         _user_id: userData.user?.id ?? "",
@@ -233,7 +236,10 @@ function AdminPage() {
           updateStage(stage, { state: "complete", progress: 100, detail: "Uploaded" });
           resolve();
         },
-        onError: (cause) => reject(cause),
+        onError: (cause) => {
+          updateStage(stage, { state: "failed", detail: "Upload interrupted. Retry to resume." });
+          reject(Object.assign(cause, { uploadStage: stage }));
+        },
       });
       const previous = await upload.findPreviousUploads();
       const resumable = previous[0];
@@ -259,7 +265,6 @@ function AdminPage() {
       let posterPath: string | null = null;
       if (videoFile || posterFile) {
         setUploading(true);
-        setProgress(0);
         const sig = `${videoFile?.name}:${videoFile?.size}|${posterFile?.name}:${posterFile?.size}`;
         if (uploaded.current?.sig === sig) {
           ({ video: videoPath, poster: posterPath } = uploaded.current);
@@ -321,9 +326,8 @@ function AdminPage() {
       setPosterFile(null);
       void loadRows();
     } catch (cause) {
-      const currentFailed = uploading
-        ? (stages.video.state === "active" ? "video" : "poster")
-        : stages.catalogue.state === "active" ? "catalogue" : "validation";
+      const tagged = cause as Error & { uploadStage?: SaveStage };
+      const currentFailed = tagged.uploadStage ?? (uploading ? "video" : "catalogue");
       setFailedStage(currentFailed);
       updateStage(currentFailed, { state: "failed", detail: "Failed. Retry will continue from completed work." });
       setError(cause instanceof Error ? cause.message : "Could not save the title.");
@@ -641,14 +645,7 @@ function AdminPage() {
                   className="w-full rounded-md border border-border object-cover"
                 />
               ) : null}
-              {uploading ? (
-                <div className="space-y-1">
-                  <div className="h-1.5 w-full overflow-hidden rounded-sm bg-surface">
-                    <div className="h-full bg-primary transition-[width]" style={{ width: `${progress}%` }} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">Uploading files. {progress}%</p>
-                </div>
-              ) : saving ? (
+              {saving && !uploading ? (
                 <p className="text-xs text-muted-foreground">Checking files and saving.</p>
               ) : null}
             </div>

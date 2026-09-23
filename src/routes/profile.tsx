@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PageHeading } from "@/components/site/TitleGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/use-account";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -26,9 +27,8 @@ function ProfilePage() {
 
   useEffect(() => {
     if (!account.userId) return;
-    void supabase.auth.getUser().then(({ data }) => {
-      const saved = data.user?.user_metadata?.["ai_language"];
-      if (typeof saved === "string") setAiLanguage(saved);
+    void supabase.from("profiles").select("ai_language").eq("user_id", account.userId).maybeSingle().then(({ data }) => {
+      if (data?.ai_language) setAiLanguage(data.ai_language);
     });
   }, [account.userId]);
 
@@ -68,7 +68,12 @@ function ProfilePage() {
 
   const saveLanguage = async () => {
     setLanguageStatus("Saving");
-    const { error } = await supabase.auth.updateUser({ data: { ai_language: aiLanguage } });
+    if (!account.userId) return;
+    const { error } = await supabase.from("profiles").upsert({
+      user_id: account.userId,
+      ai_language: aiLanguage,
+      updated_at: new Date().toISOString(),
+    });
     setLanguageStatus(error ? "Could not save the language." : "AI language saved.");
   };
 
@@ -90,7 +95,7 @@ function ProfilePage() {
           <select id="ai-language" value={aiLanguage} onChange={(event) => setAiLanguage(event.target.value)} className="min-w-52 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
             {["English", "French", "Spanish", "Portuguese", "Arabic", "Swahili", "German", "Italian", "Hindi", "Mandarin Chinese", "Japanese", "Korean"].map((item) => <option key={item}>{item}</option>)}
           </select>
-          <button type="button" onClick={saveLanguage} className="rounded-md bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">Save language</button>
+          <Button type="button" onClick={saveLanguage}>Save language</Button>
         </div>
         {languageStatus ? <p className="mt-2 text-xs text-muted-foreground">{languageStatus}</p> : null}
       </section>
