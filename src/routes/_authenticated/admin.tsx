@@ -6,7 +6,7 @@ import { describeTitle, type Suggestion, type FieldKey } from "@/lib/metadata.fu
 import { saveTitle } from "@/lib/catalog.functions";
 import { AdminTabs } from "@/components/site/AdminTabs";
 import { Button } from "@/components/ui/button";
-import * as tus from "tus-js-client";
+import { loadTus } from "@/lib/tus-browser";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -220,6 +220,7 @@ function AdminPage() {
     const base = import.meta.env["VITE_SUPABASE_URL"] as string;
     const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string;
     updateStage(stage, { state: "active", progress: 0, detail: "Uploading" });
+    const tus = await loadTus();
     await new Promise<void>(async (resolve, reject) => {
       const upload = new tus.Upload(file, {
         endpoint: `${base}/storage/v1/upload/resumable`,
@@ -228,7 +229,7 @@ function AdminPage() {
         retryDelays: [0, 1000, 3000, 5000, 10000],
         chunkSize: 6 * 1024 * 1024,
         removeFingerprintOnSuccess: true,
-        onProgress: (sent, total) => {
+        onProgress: (sent: number, total: number) => {
           const next = Math.round((sent / Math.max(total, 1)) * 100);
           updateStage(stage, { state: "active", progress: next, detail: `Uploading ${next}%` });
         },
@@ -236,7 +237,7 @@ function AdminPage() {
           updateStage(stage, { state: "complete", progress: 100, detail: "Uploaded" });
           resolve();
         },
-        onError: (cause) => {
+        onError: (cause: Error) => {
           updateStage(stage, { state: "failed", detail: "Upload interrupted. Retry to resume." });
           reject(Object.assign(cause, { uploadStage: stage }));
         },

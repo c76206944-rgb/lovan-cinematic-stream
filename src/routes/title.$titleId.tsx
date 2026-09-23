@@ -6,6 +6,7 @@ import { collapseSeries, type Title } from "@/data/titles";
 import { TitleCard } from "@/components/site/TitleCard";
 import { Comments } from "@/components/site/Comments";
 import { AdSlot } from "@/components/site/AdSlot";
+import { Player } from "@/components/site/Player";
 import { getOfflineVideoUrl } from "@/lib/offline.functions";
 import { getPlaybackUrl } from "@/lib/public-catalog.functions";
 import { downloadToApp, getOffline, saveOffline } from "@/lib/offline-store";
@@ -127,15 +128,7 @@ function TitleDetails() {
     <div className="pb-16">
       {videoUrl ? (
         <section className="bg-background">
-          <video
-            src={videoUrl}
-            controls
-            autoPlay
-            playsInline
-            controlsList="nodownload"
-            onContextMenu={(e) => e.preventDefault()}
-            className="mx-auto max-h-[80vh] w-full max-w-[1600px] bg-background"
-          />
+          <Player src={videoUrl} />
         </section>
       ) : (
       <section className="relative">
