@@ -128,6 +128,9 @@ export function getAlertPrefs(): AlertPrefs {
     return raw ? { ...defaultPrefs, ...(JSON.parse(raw) as Partial<AlertPrefs>) } : defaultPrefs;
   } catch { return defaultPrefs; }
 }
+export function setAlertPrefs(prefs: AlertPrefs) {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ }
+}
 
 function notify(event: AlertEvent, kind: "info" | "success" | "error", title: string, body: string) {
   const pref = getAlertPrefs()[event];

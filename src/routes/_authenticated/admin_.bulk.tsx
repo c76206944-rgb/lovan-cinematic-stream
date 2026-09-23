@@ -85,6 +85,7 @@ function BulkPage() {
     const validFiles: File[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      if (!file) continue;
       if (file.size === 0) {
         toast.error(`"${file.name}" is empty (0 bytes) and was skipped.`);
         continue;
