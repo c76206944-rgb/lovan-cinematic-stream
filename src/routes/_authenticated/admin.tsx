@@ -676,7 +676,7 @@ function AdminPage() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   {existingRecord.kind === "series" ? `${existingRecord.seriesName || existingRecord.name}, season ${existingRecord.season}, episode ${existingRecord.episode}` : `${existingRecord.name} (${existingRecord.year})`} · {existingRecord.archived ? "Archived" : existingRecord.published ? "Published" : "Draft"}
                 </p>
-                <Link to="/admin/catalog" className="mt-3 inline-block text-sm text-primary">Open in Catalogue</Link>
+                <Link to="/admin/catalog" search={{}} className="mt-3 inline-block text-sm text-primary">Open in Catalogue</Link>
               </div>
             ) : null}
           </section>
