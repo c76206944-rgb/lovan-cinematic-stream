@@ -96,7 +96,7 @@ export async function openForPlayback(id: string): Promise<string> {
   const row = await run<Stored | undefined>(STORE, "readonly", (s) => s.get(id));
   if (!row || row.expiresAt < Date.now()) throw new Error("This download has expired. Save it again.");
   const key = await deviceKey();
-  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: row.iv }, key, row.data);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: row.iv as Uint8Array<ArrayBuffer> }, key, row.data);
   return URL.createObjectURL(new Blob([plain], { type: row.type }));
 }
 

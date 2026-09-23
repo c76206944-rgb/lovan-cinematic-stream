@@ -104,7 +104,7 @@ export const saveTitle = createServerFn({ method: "POST" })
     if (!data.id) {
       let q = context.supabase.from("catalog_titles").select("id").eq("kind", data.kind);
       q = data.kind === "series"
-        ? q.ilike("series_name", data.series_name || data.name).eq("season", data.season).eq("episode", data.episode)
+        ? q.ilike("series_name", data.series_name || data.name).eq("season", data.season ?? 0).eq("episode", data.episode ?? 0)
         : q.ilike("name", data.name).eq("year", data.year);
       const { data: clash } = await q.limit(1);
       if (clash && clash.length) {
