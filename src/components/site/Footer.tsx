@@ -3,8 +3,10 @@ import { Link } from "@tanstack/react-router";
 const links = [
   { to: "/movies", label: "Movies" },
   { to: "/series", label: "Series" },
-  { to: "/premium", label: "Premium" },
-  { to: "/creator-hub", label: "Creator Hub" },
+  { to: "/donate", label: "Donate" },
+  { to: "/requests", label: "Request a title" },
+  { to: "/downloads", label: "Downloads" },
+  { to: "/removal-request", label: "Request removal" },
   { to: "/help", label: "Help" },
   { to: "/contact", label: "Contact" },
   { to: "/terms", label: "Terms" },
@@ -30,10 +32,6 @@ export function Footer() {
             </Link>
           ))}
         </div>
-        <p className="mt-6 text-xs text-muted-foreground">
-          Copyright LOVAN. All rights reserved. Catalogue shown is demo content. Availability
-          depends on the rights held for each territory.
-        </p>
       </div>
     </footer>
   );
