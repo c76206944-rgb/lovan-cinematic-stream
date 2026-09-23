@@ -20,6 +20,7 @@ import { Route as ForYouRouteImport } from './routes/for-you'
 import { Route as GenresRouteImport } from './routes/genres'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as IndexRouteImport } from './routes/index_'
 import { Route as MoviesRouteImport } from './routes/movies'
 import { Route as MyListRouteImport } from './routes/my-list'
 import { Route as NewReleasesRouteImport } from './routes/new-releases'
@@ -89,6 +90,11 @@ const HelpRoute = HelpRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/index_',
+  path: '/index',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MoviesRoute = MoviesRouteImport.update({
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/genres': typeof GenresRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/index': typeof IndexRoute
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/genres': typeof GenresRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/index': typeof IndexRoute
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
@@ -243,6 +251,7 @@ export interface FileRoutesById {
   '/genres': typeof GenresRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/index_': typeof IndexRoute
   '/movies': typeof MoviesRoute
   '/my-list': typeof MyListRoute
   '/new-releases': typeof NewReleasesRoute
@@ -273,6 +282,7 @@ export interface FileRouteTypes {
     | '/genres'
     | '/help'
     | '/home'
+    | '/index'
     | '/movies'
     | '/my-list'
     | '/new-releases'
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/genres'
     | '/help'
     | '/home'
+    | '/index'
     | '/movies'
     | '/my-list'
     | '/new-releases'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/genres'
     | '/help'
     | '/home'
+    | '/index_'
     | '/movies'
     | '/my-list'
     | '/new-releases'
@@ -360,6 +372,7 @@ export interface RootRouteChildren {
   GenresRoute: typeof GenresRoute
   HelpRoute: typeof HelpRoute
   HomeRoute: typeof HomeRoute
+  IndexRoute: typeof IndexRoute
   MoviesRoute: typeof MoviesRoute
   MyListRoute: typeof MyListRoute
   NewReleasesRoute: typeof NewReleasesRoute
@@ -451,6 +464,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/index_': {
+      id: '/index_'
+      path: '/index'
+      fullPath: '/index'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/movies': {
@@ -597,6 +617,7 @@ const rootRouteChildren: RootRouteChildren = {
   GenresRoute: GenresRoute,
   HelpRoute: HelpRoute,
   HomeRoute: HomeRoute,
+  IndexRoute: IndexRoute,
   MoviesRoute: MoviesRoute,
   MyListRoute: MyListRoute,
   NewReleasesRoute: NewReleasesRoute,
