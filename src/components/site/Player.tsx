@@ -28,6 +28,7 @@ export function Player({
   const [speedOpen, setSpeedOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [subtitle, setSubtitle] = useState<string>("off");
+  const [noPicture, setNoPicture] = useState(false);
 
   const goFullscreen = async () => {
     const box = boxRef.current;
@@ -104,6 +105,7 @@ export function Player({
           crossOrigin="anonymous"
           controlsList="nodownload"
           onContextMenu={(e) => e.preventDefault()}
+          onLoadedMetadata={(e) => setNoPicture(e.currentTarget.videoWidth === 0)}
           className={`h-full w-full bg-black object-contain ${full ? "h-dvh" : ""}`}
         >
           {tracks.map((t) => (
@@ -111,6 +113,11 @@ export function Player({
           ))}
         </video>
       </div>
+      {noPicture ? (
+        <p className="absolute inset-x-4 bottom-16 rounded-md border border-border bg-background/90 p-3 text-center text-xs text-foreground">
+          This browser can play the sound of this file but not its picture. The video uses a format (HEVC / x265) that many laptop browsers do not support. Try Safari or Microsoft Edge, or upload an H.264 version of this film.
+        </p>
+      ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
         <button type="button" onClick={() => void leave()} className={`pointer-events-auto ${chip}`}>
