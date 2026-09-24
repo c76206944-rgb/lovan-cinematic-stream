@@ -364,7 +364,7 @@ function CatalogPage() {
         </div>
 
         {editing ? (
-          <div className="fixed inset-0 z-50 flex justify-end bg-background/80" onClick={() => setEditing(null)}>
+          <div className="fixed inset-0 z-50 flex justify-end bg-background/80" onClick={closeEdit}>
             <form
               onSubmit={submitEdit}
               onClick={(e) => e.stopPropagation()}
@@ -372,9 +372,21 @@ function CatalogPage() {
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-foreground">Edit title</h2>
-                <button type="button" onClick={() => setEditing(null)} className="text-sm text-muted-foreground hover:text-foreground">Close</button>
+                <button type="button" onClick={closeEdit} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">Close</button>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={aiBusy}
+                  onClick={() => void fillWithAi()}
+                  className="rounded-md border border-primary px-3 py-1.5 text-sm text-primary disabled:opacity-50"
+                >
+                  {aiBusy ? "Looking up details" : "Fill in details with AI"}
+                </button>
+                {aiNote ? <span className="text-xs text-muted-foreground">{aiNote}</span> : null}
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
+
                 <L label="Name" wide><input className={inputClass} value={editing.name} onChange={(e) => patch({ name: e.target.value })} /></L>
                 {editing.kind === "series" ? (
                   <>
