@@ -36,10 +36,12 @@ export const getSubtitleTracks = createServerFn({ method: "POST" })
       .filter((t) => Boolean(t.url));
   });
 
-async function requireStaff(context: { supabase: { rpc: (n: string, a: Record<string, unknown>) => Promise<{ data: unknown }> }; userId: string }) {
-  const { data: staff } = await context.supabase.rpc("is_staff", { _user_id: context.userId });
+async function requireStaff(context: { supabase: { rpc: (...args: never[]) => unknown }; userId: string }) {
+  const rpc = context.supabase.rpc as unknown as (n: string, a: Record<string, unknown>) => Promise<{ data: unknown }>;
+  const { data: staff } = await rpc("is_staff", { _user_id: context.userId });
   if (!staff) throw new Error("Forbidden");
 }
+
 
 /** Staff list of the subtitle files saved on a title. */
 export const listSubtitleTracks = createServerFn({ method: "POST" })
