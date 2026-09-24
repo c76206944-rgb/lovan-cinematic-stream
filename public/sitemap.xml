@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://lovan.site/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://lovan.site/home</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://lovan.site/explore</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://lovan.site/movies</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://lovan.site/series</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://lovan.site/genres</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lovan.site/new-releases</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lovan.site/trending</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lovan.site/search</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://lovan.site/for-you</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://lovan.site/requests</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://lovan.site/help</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://lovan.site/contact</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://lovan.site/terms</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://lovan.site/privacy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://lovan.site/cookie-policy</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://lovan.site/removal-request</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>
