@@ -164,6 +164,71 @@ function CatalogPage() {
   const patch = (fields: Partial<Row>) => setEditing((cur) => (cur ? { ...cur, ...fields } : cur));
   const splitList = (value: string) => value.split(",").map((v) => v.trim()).filter(Boolean);
 
+  const closeEdit = useCallback(() => {
+    setEditing(null);
+    setAiNote(null);
+    if (search.edit) void navigate({ to: "/admin/catalog", search: {}, replace: true });
+  }, [navigate, search.edit]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeEdit();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editing, closeEdit]);
+
+  const fillWithAi = async () => {
+    if (!editing) return;
+    setAiBusy(true);
+    setAiNote(null);
+    try {
+      const notes = [editing.synopsis, editing.series_name, editing.episode_title, editing.country, editing.language]
+        .filter(Boolean)
+        .join("\n");
+      const res = await enrich({
+        data: {
+          name: editing.name,
+          kind: editing.kind === "series" ? "series" : "movie",
+          notes,
+          outputLanguage: "English",
+        },
+      });
+      const pick = (key: string) => res.suggestions.find((s) => s.key === key && s.value.trim());
+      const fields: Partial<Row> = {};
+      const synopsis = pick("synopsis");
+      if (synopsis && !editing.synopsis.trim()) fields.synopsis = synopsis.value;
+      const genres = pick("genres");
+      if (genres) fields.genres = splitList(genres.value);
+      const cast = pick("cast");
+      if (cast) fields.cast_members = splitList(cast.value);
+      const director = pick("director");
+      if (director) fields.director = director.value;
+      const country = pick("country");
+      if (country) fields.country = country.value;
+      const language = pick("language");
+      if (language) fields.language = language.value;
+      const runtime = pick("runtime");
+      if (runtime) fields.runtime = runtime.value;
+      const maturity = pick("maturity");
+      if (maturity) fields.maturity = maturity.value;
+      const year = pick("year");
+      if (year) fields.year = Number(year.value) || editing.year;
+      patch(fields);
+      const filled = Object.keys(fields).length;
+      setAiNote(
+        filled
+          ? `${filled} fields filled in${res.recognized && res.matchedTitle ? `, matched to ${res.matchedTitle}` : ""}. Check them, then save.`
+          : "The AI could not confirm anything new. Add a short summary and try again.",
+      );
+    } catch (cause) {
+      setAiNote(cause instanceof Error ? cause.message : "The AI could not be reached.");
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   return (
     <StaffGate ready={account.ready} staff={account.staff} email={account.email}>
       <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-6">
