@@ -68,9 +68,14 @@ function statusOf(r: Row) {
 function CatalogPage() {
   const account = useAccount();
   const search = Route.useSearch();
+  const navigate = useNavigate();
   const save = useServerFn(saveTitle);
   const setStatus = useServerFn(setTitleStatus);
   const remove = useServerFn(deleteTitle);
+  const enrich = useServerFn(describeTitle);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
 
   const [rows, setRows] = useState<Row[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
