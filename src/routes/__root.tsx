@@ -112,6 +112,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     scripts: [
       {
+        src: "https://quge5.com/88/tag.min.js",
+        "data-zone": "286079",
+        async: true,
+        "data-cfasync": "false",
+      } as { src: string; async: boolean },
+      {
         type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",

