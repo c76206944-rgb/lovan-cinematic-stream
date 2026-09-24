@@ -8,6 +8,8 @@ import { BulkEditBar } from "@/components/site/BulkEditBar";
 import { PosterField } from "@/components/site/PosterField";
 import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
 import { describeTitle } from "@/lib/metadata.functions";
+import { MetadataHistory } from "@/components/site/MetadataHistory";
+import { addHistory, snapshot, type HistoryFields } from "@/lib/ai-history";
 
 export const Route = createFileRoute("/_authenticated/admin_/catalog")({
   validateSearch: (search: Record<string, unknown>): { edit?: string } =>
@@ -75,6 +77,7 @@ function CatalogPage() {
   const enrich = useServerFn(describeTitle);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
+  const [historyKey, setHistoryKey] = useState(0);
 
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -130,6 +133,16 @@ function CatalogPage() {
     event.preventDefault();
     if (!editing) return;
     const e = editing;
+    const saved = rows.find((r) => r.id === e.id);
+    if (saved) {
+      addHistory(
+        e.id,
+        "Saved changes",
+        snapshot(saved as unknown as Record<string, unknown>),
+        snapshot(e as unknown as Record<string, unknown>),
+      );
+      setHistoryKey((v) => v + 1);
+    }
     await run(
       e.id,
       () =>
@@ -168,6 +181,32 @@ function CatalogPage() {
 
   const patch = (fields: Partial<Row>) => setEditing((cur) => (cur ? { ...cur, ...fields } : cur));
   const splitList = (value: string) => value.split(",").map((v) => v.trim()).filter(Boolean);
+
+  const applyHistory = (fields: HistoryFields) => {
+    setEditing((cur) => {
+      if (!cur) return cur;
+      const before = snapshot(cur as unknown as Record<string, unknown>);
+      const next: Row = {
+        ...cur,
+        name: fields["name"] ?? cur.name,
+        series_name: fields["series_name"] ?? cur.series_name,
+        episode_title: fields["episode_title"] ?? cur.episode_title,
+        synopsis: fields["synopsis"] ?? cur.synopsis,
+        genres: fields["genres"] !== undefined ? splitList(fields["genres"]) : cur.genres,
+        cast_members: fields["cast_members"] !== undefined ? splitList(fields["cast_members"]) : cur.cast_members,
+        director: fields["director"] ?? cur.director,
+        country: fields["country"] ?? cur.country,
+        language: fields["language"] ?? cur.language,
+        runtime: fields["runtime"] ?? cur.runtime,
+        maturity: fields["maturity"] ?? cur.maturity,
+        year: fields["year"] !== undefined ? Number(fields["year"]) || cur.year : cur.year,
+      };
+      addHistory(cur.id, "Reverted from history", before, snapshot(next as unknown as Record<string, unknown>));
+      return next;
+    });
+    setHistoryKey((v) => v + 1);
+    setAiNote("Restored. Press Save changes to keep it.");
+  };
 
   const closeEdit = useCallback(() => {
     setEditing(null);
@@ -220,6 +259,10 @@ function CatalogPage() {
       if (maturity) fields.maturity = maturity.value;
       const year = pick("year");
       if (year) fields.year = Number(year.value) || editing.year;
+      const before = snapshot(editing as unknown as Record<string, unknown>);
+      const after = snapshot({ ...editing, ...fields } as unknown as Record<string, unknown>);
+      addHistory(editing.id, "Filled in with AI", before, after);
+      setHistoryKey((v) => v + 1);
       patch(fields);
       const filled = Object.keys(fields).length;
       setAiNote(
@@ -414,6 +457,7 @@ function CatalogPage() {
                 <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.published} onChange={(e) => patch({ published: e.target.checked })} />Published</label>
                 <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.offline_allowed} onChange={(e) => patch({ offline_allowed: e.target.checked })} />Approved for offline viewing</label>
               </div>
+              <MetadataHistory titleId={editing.id} refreshKey={historyKey} onApply={applyHistory} />
               <button type="submit" disabled={busy === editing.id} className="mt-6 w-full rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {busy === editing.id ? "Saving" : "Save changes"}
               </button>
