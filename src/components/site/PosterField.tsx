@@ -1,18 +1,25 @@
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { importPosterFromUrl } from "@/lib/subtitles.functions";
 
 /** Shows the current poster and lets staff replace it with a new picture. */
 export function PosterField({
   posterPath,
   onChange,
+  titleName = "",
 }: {
   posterPath: string | null;
   onChange: (path: string) => void;
+  titleName?: string;
 }) {
+  const importUrl = useServerFn(importPosterFromUrl);
+  const [webUrl, setWebUrl] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const localUrl = useRef<string | null>(null);
+
 
   useEffect(() => {
     let active = true;
@@ -71,10 +78,67 @@ export function PosterField({
             className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-surface file:px-3 file:py-1.5 file:text-sm file:text-foreground"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            {busy ? "Uploading the picture" : "Choose a new picture, then save the changes."}
+            {busy ? "Working on the picture" : "Choose a new picture, then save the changes."}
           </p>
+
+          {titleName.trim() ? (
+            <div className="mt-3">
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">Find a poster online</span>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {[
+                  { label: "Image search", href: `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${titleName} film poster`)}` },
+                  { label: "Bing images", href: `https://www.bing.com/images/search?q=${encodeURIComponent(`${titleName} movie poster`)}` },
+                  { label: "TMDB", href: `https://www.themoviedb.org/search?query=${encodeURIComponent(titleName)}` },
+                ].map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md border border-border px-2.5 py-1 text-xs text-foreground"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Open a link, copy the picture address, paste it below and tap Bring in.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-2 flex gap-2">
+            <input
+              value={webUrl}
+              onChange={(e) => setWebUrl(e.target.value)}
+              placeholder="Paste a picture link"
+              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
+            />
+            <button
+              type="button"
+              disabled={busy || !webUrl.trim()}
+              onClick={() => {
+                setError(null);
+                setBusy(true);
+                void importUrl({ data: { url: webUrl.trim() } })
+                  .then(({ path }) => {
+                    setPreview(webUrl.trim());
+                    onChange(path);
+                    setWebUrl("");
+                  })
+                  .catch((cause: unknown) =>
+                    setError(cause instanceof Error ? cause.message : "That picture could not be brought in."),
+                  )
+                  .finally(() => setBusy(false));
+              }}
+              className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
+            >
+              Bring in
+            </button>
+          </div>
           {error ? <p className="mt-2 text-xs text-primary">{error}</p> : null}
         </div>
+
       </div>
     </div>
   );

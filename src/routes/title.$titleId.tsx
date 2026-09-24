@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Play, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Download, Play, Plus, Share2 } from "lucide-react";
 import { collapseSeries, type Title } from "@/data/titles";
 import { TitleCard } from "@/components/site/TitleCard";
 import { Comments } from "@/components/site/Comments";
 import { AdSlot } from "@/components/site/AdSlot";
 import { Player } from "@/components/site/Player";
 import { getOfflineVideoUrl } from "@/lib/offline.functions";
+import { getSubtitleTracks } from "@/lib/subtitles.functions";
 import { getPlaybackUrl } from "@/lib/public-catalog.functions";
+
 import { downloadToApp, getOffline, saveOffline } from "@/lib/offline-store";
 import { useAccount } from "@/lib/use-account";
 import { catalogQuery, useCatalog } from "@/lib/use-catalog";
@@ -103,9 +105,11 @@ function TitleDetails() {
   const { title } = Route.useLoaderData();
   const { titles } = useCatalog();
   const play = useServerFn(getPlaybackUrl);
+  const loadTracks = useServerFn(getSubtitleTracks);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [tracks, setTracks] = useState<{ lang: string; label: string; url: string }[]>([]);
   const [playMsg, setPlayMsg] = useState<string | null>(null);
-  useEffect(() => { setVideoUrl(null); setPlayMsg(null); }, [title.id]);
+  useEffect(() => { setVideoUrl(null); setPlayMsg(null); setTracks([]); }, [title.id]);
   const episodes = title.kind === "series"
     ? titles.filter((t) => t.kind === "series" && t.seriesName.toLowerCase() === title.seriesName.toLowerCase())
         .sort((a, b) => (a.season ?? 0) - (b.season ?? 0) || (a.episode ?? 0) - (b.episode ?? 0))
@@ -119,6 +123,7 @@ function TitleDetails() {
       const { url } = await play({ data: { id: title.id } });
       setVideoUrl(url);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      void loadTracks({ data: { id: title.id } }).then(setTracks).catch(() => setTracks([]));
     } catch (e) {
       setPlayMsg(e instanceof Error ? e.message : "Could not start playback.");
     }
@@ -128,7 +133,7 @@ function TitleDetails() {
     <div className="pb-16">
       {videoUrl ? (
         <section className="bg-background">
-          <Player src={videoUrl} />
+          <Player src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} />
         </section>
       ) : (
       <section className="relative">
@@ -137,11 +142,19 @@ function TitleDetails() {
           alt=""
           width={1536}
           height={864}
-          className="h-[58vh] min-h-[340px] w-full object-cover opacity-50"
+          className="h-[58vh] min-h-[340px] w-full object-cover object-center opacity-50"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+        <Link
+          to="/home"
+          className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-md border border-border bg-background/80 px-3 py-1.5 text-xs text-foreground"
+        >
+          <ArrowLeft className="size-4" strokeWidth={1.5} />
+          Back
+        </Link>
       </section>
       )}
+
 
       <div className={`mx-auto ${videoUrl ? "mt-8" : "-mt-28"} max-w-[1600px] px-4 sm:px-6`}>
         <div className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

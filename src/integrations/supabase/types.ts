@@ -43,6 +43,7 @@ export type Database = {
           runtime: string
           season: number | null
           series_name: string
+          subtitles: Json
           synopsis: string
           updated_at: string
           upload_key: string | null
@@ -78,6 +79,7 @@ export type Database = {
           runtime?: string
           season?: number | null
           series_name?: string
+          subtitles?: Json
           synopsis?: string
           updated_at?: string
           upload_key?: string | null
@@ -113,6 +115,7 @@ export type Database = {
           runtime?: string
           season?: number | null
           series_name?: string
+          subtitles?: Json
           synopsis?: string
           updated_at?: string
           upload_key?: string | null
