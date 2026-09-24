@@ -97,9 +97,12 @@ export function BulkEditBar(props: {
     <div className="mt-4 rounded-lg border border-border p-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-foreground">{n} selected</span>
-        <button type="button" disabled={!n} onClick={() => setOpen(!open)} className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-50">Edit selected</button>
+        <button type="button" disabled={!n} onClick={() => setOpen(!open)} className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-50">{open ? "Close editor" : "Edit selected"}</button>
+        <button type="button" disabled={!n || aiBusy} onClick={() => void suggest()} className="rounded-md border border-primary px-3 py-1.5 text-primary disabled:opacity-50">{aiBusy ? "Asking AI" : "Suggest with AI"}</button>
         {n ? <button type="button" onClick={() => props.setSelected(new Set())} className="text-muted-foreground">Clear</button> : null}
+        {aiNote ? <span className="text-xs text-muted-foreground">{aiNote}</span> : null}
       </div>
+
       {seriesNames.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="text-xs text-muted-foreground">Select whole series:</span>
