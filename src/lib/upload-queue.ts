@@ -1,8 +1,8 @@
 import { useSyncExternalStore } from "react";
-import { loadTus, type TusUpload } from "@/lib/tus-browser";
+import { loadTus } from "@/lib/tus-browser";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { saveTitle } from "@/lib/catalog.functions";
+import { saveTitle, createUploadUrl } from "@/lib/catalog.functions";
 
 export type JobState = "waiting" | "uploading" | "saving" | "paused" | "done" | "failed";
 
@@ -26,7 +26,42 @@ export type Job = {
 const MAX_PARALLEL = 2;
 let jobs: Job[] = [];
 const listeners = new Set<() => void>();
-const active = new Map<string, TusUpload>();
+const active = new Map<string, { abort: (terminate?: boolean) => unknown }>();
+
+// Lovable Cloud's tus endpoint rejects valid user tokens ("Invalid Compact JWS").
+// Signed upload URLs skip that endpoint. Set to false to go back to tus.
+const USE_SIGNED_UPLOADS = true;
+
+function putWithProgress(
+  url: string,
+  file: File,
+  apikey: string,
+  onProgress: (sent: number, total: number) => void,
+  register: (xhr: XMLHttpRequest) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("apikey", apikey);
+    xhr.setRequestHeader("x-upsert", "true");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(e.loaded, e.total);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) return resolve();
+      let detail = xhr.responseText || "";
+      try { detail = JSON.parse(detail).message ?? detail; } catch { /* keep raw text */ }
+      reject(new Error(`Upload failed (${xhr.status}): ${String(detail).slice(0, 200)}`));
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload. Press Retry."));
+    xhr.onabort = () => reject(new Error("Upload cancelled."));
+    register(xhr);
+    const form = new FormData();
+    form.append("cacheControl", "3600");
+    form.append("", file);
+    xhr.send(form);
+  });
+}
 
 /* ---------- Session & Authentication Refresh Helpers ---------- */
 let refreshing: Promise<string | null> | null = null;
@@ -283,6 +318,27 @@ async function upload(job: Job): Promise<string> {
   const safe = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+/, "") || "video";
   const path = `videos/${job.id.slice(0, 8)}-${safe}`;
   
+  if (USE_SIGNED_UPLOADS) {
+    const anonKey = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
+    await getValidSessionToken(); // makes sure the server call below is authenticated
+    const signed = await createUploadUrl({ data: { path } });
+    await putWithProgress(
+      signed.signedUrl,
+      job.file,
+      anonKey,
+      (sent, total) => {
+        const pct = Math.round((sent / Math.max(total, 1)) * 100);
+        const cur = jobs.find((j) => j.id === job.id);
+        if (cur?.state === "uploading") {
+          patch(job.id, { progress: pct, message: `Uploading ${pct}%` }, pct % 5 === 0);
+        }
+      },
+      (xhr) => active.set(job.id, { abort: () => xhr.abort() }),
+    );
+    active.delete(job.id);
+    return path;
+  }
+
   // Obtain current or refreshed token
   const token = await getValidSessionToken();
   console.log("[upload] token parts:", token.split(".").length, "prefix:", token.slice(0, 12));
