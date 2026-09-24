@@ -45,7 +45,7 @@ function HomePage() {
   return (
     <div className="pb-16">
       <section className="relative">
-        <img src={hero.image} alt="" width={1536} height={864} className="h-[62vh] min-h-[380px] w-full object-cover opacity-55" />
+        <img src={hero.image} alt="" width={1536} height={864} className="h-[52vh] min-h-[320px] w-full object-cover object-top opacity-55" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/65 to-transparent" />
         <div className="absolute inset-0 flex items-end">
           <div className="mx-auto w-full max-w-[1600px] px-4 pb-10 sm:px-6">
