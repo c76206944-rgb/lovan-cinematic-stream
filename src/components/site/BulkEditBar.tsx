@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { bulkUpdateTitles } from "@/lib/catalog.functions";
+import { describeTitle } from "@/lib/metadata.functions";
 
 type Tri = "" | "yes" | "no";
-type RowLite = { id: string; kind: string; series_name: string };
+type RowLite = { id: string; name: string; kind: string; series_name: string };
 
 const input = "w-full min-w-0 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-primary";
 
@@ -15,13 +16,44 @@ export function BulkEditBar(props: {
   onDone: (text: string, error: boolean) => void;
 }) {
   const run = useServerFn(bulkUpdateTitles);
+  const enrich = useServerFn(describeTitle);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState("");
   const [f, setF] = useState({ series_name: "", season: "", genres: "", country: "", language: "", maturity: "", year: "", premium: "" as Tri, offline: "" as Tri, status: "" });
   const set = (k: keyof typeof f, v: string) => setF((c) => ({ ...c, [k]: v }));
 
   const seriesNames = Array.from(new Set(props.rows.filter((r) => r.kind === "series" && r.series_name).map((r) => r.series_name))).sort();
   const n = props.selected.size;
+
+  const suggest = async () => {
+    const first = props.rows.find((r) => props.selected.has(r.id));
+    if (!first) return;
+    setAiBusy(true);
+    setAiNote("");
+    try {
+      const res = await enrich({
+        data: {
+          name: first.series_name || first.name,
+          kind: first.kind === "series" ? "series" : "movie",
+          notes: props.rows.filter((r) => props.selected.has(r.id)).map((r) => r.name).slice(0, 20).join("\n"),
+          outputLanguage: "English",
+        },
+      });
+      const pick = (key: string) => res.suggestions.find((s) => s.key === key && s.value.trim())?.value ?? "";
+      const next = { genres: pick("genres"), country: pick("country"), language: pick("language"), maturity: pick("maturity"), year: pick("year") };
+      setF((c) => ({ ...c, ...Object.fromEntries(Object.entries(next).filter(([, v]) => v)) }));
+      const filled = Object.values(next).filter(Boolean).length;
+      setAiNote(filled ? `Filled ${filled} fields. Check them, then apply.` : "The AI could not confirm anything.");
+      setOpen(true);
+    } catch (e) {
+      setAiNote(e instanceof Error ? e.message : "The AI could not be reached.");
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
 
   const toggleSeries = (name: string) => {
     const ids = props.rows.filter((r) => r.kind === "series" && r.series_name === name).map((r) => r.id);
@@ -65,9 +97,12 @@ export function BulkEditBar(props: {
     <div className="mt-4 rounded-lg border border-border p-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-foreground">{n} selected</span>
-        <button type="button" disabled={!n} onClick={() => setOpen(!open)} className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-50">Edit selected</button>
+        <button type="button" disabled={!n} onClick={() => setOpen(!open)} className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-50">{open ? "Close editor" : "Edit selected"}</button>
+        <button type="button" disabled={!n || aiBusy} onClick={() => void suggest()} className="rounded-md border border-primary px-3 py-1.5 text-primary disabled:opacity-50">{aiBusy ? "Asking AI" : "Suggest with AI"}</button>
         {n ? <button type="button" onClick={() => props.setSelected(new Set())} className="text-muted-foreground">Clear</button> : null}
+        {aiNote ? <span className="text-xs text-muted-foreground">{aiNote}</span> : null}
       </div>
+
       {seriesNames.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="text-xs text-muted-foreground">Select whole series:</span>

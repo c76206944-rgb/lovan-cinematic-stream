@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/use-account";
@@ -7,6 +7,7 @@ import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { BulkEditBar } from "@/components/site/BulkEditBar";
 import { PosterField } from "@/components/site/PosterField";
 import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
+import { describeTitle } from "@/lib/metadata.functions";
 
 export const Route = createFileRoute("/_authenticated/admin_/catalog")({
   validateSearch: (search: Record<string, unknown>): { edit?: string } =>
@@ -67,9 +68,14 @@ function statusOf(r: Row) {
 function CatalogPage() {
   const account = useAccount();
   const search = Route.useSearch();
+  const navigate = useNavigate();
   const save = useServerFn(saveTitle);
   const setStatus = useServerFn(setTitleStatus);
   const remove = useServerFn(deleteTitle);
+  const enrich = useServerFn(describeTitle);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
 
   const [rows, setRows] = useState<Row[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
@@ -155,13 +161,78 @@ function CatalogPage() {
             poster_url: e.poster_url,
             video_path: e.video_path,
           },
-        }).then(() => setEditing(null)),
+        }).then(() => closeEdit()),
       "Changes saved.",
     );
   };
 
   const patch = (fields: Partial<Row>) => setEditing((cur) => (cur ? { ...cur, ...fields } : cur));
   const splitList = (value: string) => value.split(",").map((v) => v.trim()).filter(Boolean);
+
+  const closeEdit = useCallback(() => {
+    setEditing(null);
+    setAiNote(null);
+    if (search.edit) void navigate({ to: "/admin/catalog", search: {}, replace: true });
+  }, [navigate, search.edit]);
+
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeEdit();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editing, closeEdit]);
+
+  const fillWithAi = async () => {
+    if (!editing) return;
+    setAiBusy(true);
+    setAiNote(null);
+    try {
+      const notes = [editing.synopsis, editing.series_name, editing.episode_title, editing.country, editing.language]
+        .filter(Boolean)
+        .join("\n");
+      const res = await enrich({
+        data: {
+          name: editing.name,
+          kind: editing.kind === "series" ? "series" : "movie",
+          notes,
+          outputLanguage: "English",
+        },
+      });
+      const pick = (key: string) => res.suggestions.find((s) => s.key === key && s.value.trim());
+      const fields: Partial<Row> = {};
+      const synopsis = pick("synopsis");
+      if (synopsis && !editing.synopsis.trim()) fields.synopsis = synopsis.value;
+      const genres = pick("genres");
+      if (genres) fields.genres = splitList(genres.value);
+      const cast = pick("cast");
+      if (cast) fields.cast_members = splitList(cast.value);
+      const director = pick("director");
+      if (director) fields.director = director.value;
+      const country = pick("country");
+      if (country) fields.country = country.value;
+      const language = pick("language");
+      if (language) fields.language = language.value;
+      const runtime = pick("runtime");
+      if (runtime) fields.runtime = runtime.value;
+      const maturity = pick("maturity");
+      if (maturity) fields.maturity = maturity.value;
+      const year = pick("year");
+      if (year) fields.year = Number(year.value) || editing.year;
+      patch(fields);
+      const filled = Object.keys(fields).length;
+      setAiNote(
+        filled
+          ? `${filled} fields filled in${res.recognized && res.matchedTitle ? `, matched to ${res.matchedTitle}` : ""}. Check them, then save.`
+          : "The AI could not confirm anything new. Add a short summary and try again.",
+      );
+    } catch (cause) {
+      setAiNote(cause instanceof Error ? cause.message : "The AI could not be reached.");
+    } finally {
+      setAiBusy(false);
+    }
+  };
 
   return (
     <StaffGate ready={account.ready} staff={account.staff} email={account.email}>
@@ -293,7 +364,7 @@ function CatalogPage() {
         </div>
 
         {editing ? (
-          <div className="fixed inset-0 z-50 flex justify-end bg-background/80" onClick={() => setEditing(null)}>
+          <div className="fixed inset-0 z-50 flex justify-end bg-background/80" onClick={closeEdit}>
             <form
               onSubmit={submitEdit}
               onClick={(e) => e.stopPropagation()}
@@ -301,9 +372,21 @@ function CatalogPage() {
             >
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-foreground">Edit title</h2>
-                <button type="button" onClick={() => setEditing(null)} className="text-sm text-muted-foreground hover:text-foreground">Close</button>
+                <button type="button" onClick={closeEdit} className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">Close</button>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={aiBusy}
+                  onClick={() => void fillWithAi()}
+                  className="rounded-md border border-primary px-3 py-1.5 text-sm text-primary disabled:opacity-50"
+                >
+                  {aiBusy ? "Looking up details" : "Fill in details with AI"}
+                </button>
+                {aiNote ? <span className="text-xs text-muted-foreground">{aiNote}</span> : null}
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
+
                 <L label="Name" wide><input className={inputClass} value={editing.name} onChange={(e) => patch({ name: e.target.value })} /></L>
                 {editing.kind === "series" ? (
                   <>
