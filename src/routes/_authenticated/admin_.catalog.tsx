@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAccount } from "@/lib/use-account";
@@ -7,6 +7,7 @@ import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { BulkEditBar } from "@/components/site/BulkEditBar";
 import { PosterField } from "@/components/site/PosterField";
 import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
+import { describeTitle } from "@/lib/metadata.functions";
 
 export const Route = createFileRoute("/_authenticated/admin_/catalog")({
   validateSearch: (search: Record<string, unknown>): { edit?: string } =>
