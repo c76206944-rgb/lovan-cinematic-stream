@@ -232,10 +232,20 @@ function CatalogPage() {
     try {
       const notes = [editing.synopsis, editing.series_name, editing.episode_title, editing.country, editing.language]
         .filter(Boolean)
-        .join("\n");
+        .join("\n")
+        .slice(0, 3900);
+      const cleanName =
+        (editing.name ?? "")
+          .replace(/downloaded from.*$/i, "")
+          .replace(/[([][^)\]]*[)\]]/g, " ")
+          .replace(/\b(web[- ]?rip|web[- ]?dl|bluray|brrip|hdrip|dvdrip|hdtv|x26[45]|h\.?26[45]|hevc|aac|\d{3,4}p|yts|rarbg)\b.*$/i, "")
+          .replace(/[._]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 200) || (editing.name ?? "Untitled").slice(0, 200);
       const res = await enrich({
         data: {
-          name: editing.name,
+          name: cleanName,
           kind: editing.kind === "series" ? "series" : "movie",
           notes,
           outputLanguage: "English",
@@ -243,8 +253,9 @@ function CatalogPage() {
       });
       const pick = (key: string) => res.suggestions.find((s) => s.key === key && s.value.trim());
       const fields: Partial<Row> = {};
+      if (cleanName !== editing.name) fields.name = cleanName;
       const synopsis = pick("synopsis");
-      if (synopsis && !editing.synopsis.trim()) fields.synopsis = synopsis.value;
+      if (synopsis && !(editing.synopsis ?? "").trim()) fields.synopsis = synopsis.value;
       const genres = pick("genres");
       if (genres) fields.genres = splitList(genres.value);
       const cast = pick("cast");
