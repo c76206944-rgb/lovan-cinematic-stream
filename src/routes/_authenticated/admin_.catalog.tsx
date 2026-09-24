@@ -249,6 +249,10 @@ function CatalogPage() {
       if (maturity) fields.maturity = maturity.value;
       const year = pick("year");
       if (year) fields.year = Number(year.value) || editing.year;
+      const before = snapshot(editing as unknown as Record<string, unknown>);
+      const after = snapshot({ ...editing, ...fields } as unknown as Record<string, unknown>);
+      addHistory(editing.id, "Filled in with AI", before, after);
+      setHistoryKey((v) => v + 1);
       patch(fields);
       const filled = Object.keys(fields).length;
       setAiNote(
