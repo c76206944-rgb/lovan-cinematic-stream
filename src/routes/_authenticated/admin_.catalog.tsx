@@ -77,6 +77,7 @@ function CatalogPage() {
   const enrich = useServerFn(describeTitle);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
+  const [historyKey, setHistoryKey] = useState(0);
 
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -170,6 +171,32 @@ function CatalogPage() {
 
   const patch = (fields: Partial<Row>) => setEditing((cur) => (cur ? { ...cur, ...fields } : cur));
   const splitList = (value: string) => value.split(",").map((v) => v.trim()).filter(Boolean);
+
+  const applyHistory = (fields: HistoryFields) => {
+    setEditing((cur) => {
+      if (!cur) return cur;
+      const before = snapshot(cur as unknown as Record<string, unknown>);
+      const next: Row = {
+        ...cur,
+        name: fields["name"] ?? cur.name,
+        series_name: fields["series_name"] ?? cur.series_name,
+        episode_title: fields["episode_title"] ?? cur.episode_title,
+        synopsis: fields["synopsis"] ?? cur.synopsis,
+        genres: fields["genres"] !== undefined ? splitList(fields["genres"]) : cur.genres,
+        cast_members: fields["cast_members"] !== undefined ? splitList(fields["cast_members"]) : cur.cast_members,
+        director: fields["director"] ?? cur.director,
+        country: fields["country"] ?? cur.country,
+        language: fields["language"] ?? cur.language,
+        runtime: fields["runtime"] ?? cur.runtime,
+        maturity: fields["maturity"] ?? cur.maturity,
+        year: fields["year"] !== undefined ? Number(fields["year"]) || cur.year : cur.year,
+      };
+      addHistory(cur.id, "Reverted from history", before, snapshot(next as unknown as Record<string, unknown>));
+      return next;
+    });
+    setHistoryKey((v) => v + 1);
+    setAiNote("Restored. Press Save changes to keep it.");
+  };
 
   const closeEdit = useCallback(() => {
     setEditing(null);
