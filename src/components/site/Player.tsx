@@ -102,10 +102,21 @@ export function Player({
           controls
           autoPlay
           playsInline
-          crossOrigin="anonymous"
+          preload="auto"
+          {...(tracks.length > 0 ? { crossOrigin: "anonymous" as const } : {})}
           controlsList="nodownload"
           onContextMenu={(e) => e.preventDefault()}
           onLoadedMetadata={(e) => setNoPicture(e.currentTarget.videoWidth === 0)}
+          onPlaying={(e) => {
+            const v = e.currentTarget as HTMLVideoElement & {
+              getVideoPlaybackQuality?: () => { totalVideoFrames: number };
+            };
+            window.setTimeout(() => {
+              if (v.paused) return;
+              const frames = v.getVideoPlaybackQuality?.().totalVideoFrames;
+              if (v.videoWidth === 0 || frames === 0) setNoPicture(true);
+            }, 2500);
+          }}
           className={`h-full w-full bg-black object-contain ${full ? "h-dvh" : ""}`}
         >
           {tracks.map((t) => (
