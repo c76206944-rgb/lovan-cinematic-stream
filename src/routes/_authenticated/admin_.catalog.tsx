@@ -8,6 +8,8 @@ import { BulkEditBar } from "@/components/site/BulkEditBar";
 import { PosterField } from "@/components/site/PosterField";
 import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
 import { describeTitle } from "@/lib/metadata.functions";
+import { MetadataHistory } from "@/components/site/MetadataHistory";
+import { addHistory, snapshot, type HistoryFields } from "@/lib/ai-history";
 
 export const Route = createFileRoute("/_authenticated/admin_/catalog")({
   validateSearch: (search: Record<string, unknown>): { edit?: string } =>
