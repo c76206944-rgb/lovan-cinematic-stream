@@ -57,6 +57,13 @@
       "when": 1790200402868,
       "tag": "0007_restrict_title_comments_read",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790278026996,
+      "tag": "0008_catalog_subtitles",
+      "breakpoints": true
     }
   ]
 }
