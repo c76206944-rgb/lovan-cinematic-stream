@@ -133,6 +133,16 @@ function CatalogPage() {
     event.preventDefault();
     if (!editing) return;
     const e = editing;
+    const saved = rows.find((r) => r.id === e.id);
+    if (saved) {
+      addHistory(
+        e.id,
+        "Saved changes",
+        snapshot(saved as unknown as Record<string, unknown>),
+        snapshot(e as unknown as Record<string, unknown>),
+      );
+      setHistoryKey((v) => v + 1);
+    }
     await run(
       e.id,
       () =>
@@ -447,6 +457,7 @@ function CatalogPage() {
                 <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.published} onChange={(e) => patch({ published: e.target.checked })} />Published</label>
                 <label className="flex items-center gap-3"><input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={editing.offline_allowed} onChange={(e) => patch({ offline_allowed: e.target.checked })} />Approved for offline viewing</label>
               </div>
+              <MetadataHistory titleId={editing.id} refreshKey={historyKey} onApply={applyHistory} />
               <button type="submit" disabled={busy === editing.id} className="mt-6 w-full rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 {busy === editing.id ? "Saving" : "Save changes"}
               </button>
