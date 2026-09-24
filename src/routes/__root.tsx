@@ -87,6 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "LOVAN" },
+      { name: "monetag", content: "a95ef0e7701024c1837fd90d8aaf8313" },
       { title: "LOVAN" },
       {
         name: "description",
