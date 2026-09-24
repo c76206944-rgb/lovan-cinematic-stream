@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Play, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Download, Play, Plus, Share2 } from "lucide-react";
 import { collapseSeries, type Title } from "@/data/titles";
 import { TitleCard } from "@/components/site/TitleCard";
 import { Comments } from "@/components/site/Comments";
 import { AdSlot } from "@/components/site/AdSlot";
 import { Player } from "@/components/site/Player";
 import { getOfflineVideoUrl } from "@/lib/offline.functions";
+import { getSubtitleTracks } from "@/lib/subtitles.functions";
 import { getPlaybackUrl } from "@/lib/public-catalog.functions";
+
 import { downloadToApp, getOffline, saveOffline } from "@/lib/offline-store";
 import { useAccount } from "@/lib/use-account";
 import { catalogQuery, useCatalog } from "@/lib/use-catalog";

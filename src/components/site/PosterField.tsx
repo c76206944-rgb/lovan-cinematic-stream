@@ -1,18 +1,25 @@
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { importPosterFromUrl } from "@/lib/subtitles.functions";
 
 /** Shows the current poster and lets staff replace it with a new picture. */
 export function PosterField({
   posterPath,
   onChange,
+  titleName = "",
 }: {
   posterPath: string | null;
   onChange: (path: string) => void;
+  titleName?: string;
 }) {
+  const importUrl = useServerFn(importPosterFromUrl);
+  const [webUrl, setWebUrl] = useState("");
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const localUrl = useRef<string | null>(null);
+
 
   useEffect(() => {
     let active = true;
