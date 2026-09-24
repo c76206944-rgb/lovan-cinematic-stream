@@ -45,7 +45,7 @@ export function Rail({ rail }: { rail: RailType }) {
           <TitleCard
             key={`${rail.id}-${item.id}`}
             title={item}
-            className="w-[240px] shrink-0 snap-start sm:w-[280px]"
+            className="w-[150px] shrink-0 snap-start sm:w-[190px]"
           />
         ))}
       </div>

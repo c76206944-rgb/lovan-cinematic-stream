@@ -19,10 +19,11 @@ export function TitleCard({ title, progress, className }: Props) {
           src={title.image}
           alt={title.name}
           loading="lazy"
-          width={1536}
-          height={864}
-          className="aspect-video w-full object-cover opacity-90 transition-opacity duration-300 group-hover:opacity-100"
+          width={1000}
+          height={1500}
+          className="aspect-[2/3] w-full object-cover object-center opacity-90 transition-opacity duration-300 group-hover:opacity-100"
         />
+
         {typeof progress === "number" ? (
           <div className="absolute inset-x-0 bottom-0 h-0.5 bg-border">
             <div className="h-full bg-primary" style={{ width: `${progress}%` }} />
