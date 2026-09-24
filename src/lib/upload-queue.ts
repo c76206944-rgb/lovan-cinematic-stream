@@ -31,6 +31,9 @@ const active = new Map<string, { abort: (terminate?: boolean) => unknown }>();
 // Lovable Cloud's tus endpoint rejects valid user tokens ("Invalid Compact JWS").
 // Signed upload URLs skip that endpoint. Set to false to go back to tus.
 const USE_SIGNED_UPLOADS = true;
+// "tus" sends the file in 6 MB pieces (resumable, avoids huge single requests).
+// "put" sends one big request (fails on very large files).
+const SIGNED_MODE: "tus" | "put" = "tus";
 
 function putWithProgress(
   url: string,
@@ -320,21 +323,59 @@ async function upload(job: Job): Promise<string> {
   
   if (USE_SIGNED_UPLOADS) {
     const anonKey = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
+    const base = (import.meta.env["VITE_SUPABASE_URL"] || "") as string;
     await getValidSessionToken(); // makes sure the server call below is authenticated
     const signed = await createUploadUrl({ data: { path } });
-    await putWithProgress(
-      signed.signedUrl,
-      job.file,
-      anonKey,
-      (sent, total) => {
-        const pct = Math.round((sent / Math.max(total, 1)) * 100);
-        const cur = jobs.find((j) => j.id === job.id);
-        if (cur?.state === "uploading") {
-          patch(job.id, { progress: pct, message: `Uploading ${pct}%` }, pct % 5 === 0);
-        }
-      },
-      (xhr) => active.set(job.id, { abort: () => xhr.abort() }),
-    );
+
+    const onPct = (sent: number, total: number) => {
+      const pct = Math.round((sent / Math.max(total, 1)) * 100);
+      const cur = jobs.find((j) => j.id === job.id);
+      if (cur?.state === "uploading") {
+        patch(job.id, { progress: pct, message: `Uploading ${pct}%` }, pct % 5 === 0);
+      }
+    };
+
+    if (SIGNED_MODE === "put") {
+      await putWithProgress(signed.signedUrl, job.file, anonKey, onPct, (xhr) =>
+        active.set(job.id, { abort: () => xhr.abort() }),
+      );
+      active.delete(job.id);
+      return path;
+    }
+
+    // Resumable upload authorised by the signed token (no user JWT involved).
+    const sig = new URL(signed.signedUrl).searchParams.get("token");
+    if (!sig) throw new Error("Could not prepare the upload.");
+    const tus = await loadTus();
+    await new Promise<void>((resolve, reject) => {
+      const up = new tus.Upload(job.file, {
+        endpoint: `${base}/storage/v1/upload/resumable/sign`,
+        headers: { apikey: anonKey, "x-signature": sig, "x-upsert": "true" },
+        metadata: {
+          bucketName: "media",
+          objectName: path,
+          contentType: job.file.type || "application/octet-stream",
+          cacheControl: "3600",
+        },
+        retryDelays: [0, 1000, 3000, 5000, 10000, 20000, 30000],
+        chunkSize: 6 * 1024 * 1024,
+        removeFingerprintOnSuccess: true,
+        fingerprint: async () => `lovan-${job.id}`,
+        onShouldRetry: (err: any, attempt: number) => {
+          const status: number = err?.originalResponse?.getStatus?.() ?? 0;
+          if (status >= 400 && status < 500 && ![409, 423, 429].includes(status)) return false;
+          return attempt < 7;
+        },
+        onProgress: onPct,
+        onSuccess: () => resolve(),
+        onError: (e: unknown) => reject(e),
+      });
+      active.set(job.id, up);
+      up.findPreviousUploads().then((prev) => {
+        if (prev[0]) up.resumeFromPreviousUpload(prev[0]);
+        up.start();
+      }).catch(() => up.start());
+    });
     active.delete(job.id);
     return path;
   }
@@ -466,9 +507,11 @@ async function run(job: Job) {
     if (!cur || cur.state === "paused") return;
     const offline = typeof navigator !== "undefined" && !navigator.onLine;
     const raw = e instanceof Error ? e.message : "";
-    const msg = /Invalid Compact JWS|AccessDenied|Unauthorized/i.test(raw)
-      ? "Sign-in problem. Sign out, sign in again, then press Retry."
-      : raw || "Upload stopped. Press Retry.";
+    const msg = /response code: 413|Payload too large|exceeded the maximum/i.test(raw)
+      ? "File is larger than the storage size limit. Raise the limit or compress the video."
+      : /Invalid Compact JWS|AccessDenied|Unauthorized/i.test(raw)
+        ? "Sign-in problem. Sign out, sign in again, then press Retry."
+        : raw || "Upload stopped. Press Retry.";
     patch(job.id, offline
       ? { state: "waiting", message: "Waiting for connection" }
       : { state: "failed", message: msg });
