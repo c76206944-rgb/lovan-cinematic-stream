@@ -93,6 +93,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "LOVAN is a streaming service for films, series, documentaries and short films.",
       },
       { name: "author", content: "LOVAN" },
+      { name: "application-name", content: "LOVAN" },
+      { property: "og:site_name", content: "LOVAN" },
+      { property: "og:locale", content: "en_US" },
       { property: "og:title", content: "LOVAN" },
       {
         property: "og:description",
@@ -100,6 +103,47 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "LOVAN" },
+      {
+        name: "twitter:description",
+        content: "LOVAN is a streaming service for films, series, documentaries and short films.",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "WebSite",
+              "@id": "https://lovan.site/#website",
+              name: "LOVAN",
+              alternateName: "LOVAN Streaming",
+              url: "https://lovan.site/",
+              publisher: { "@id": "https://lovan.site/#organization" },
+              potentialAction: {
+                "@type": "SearchAction",
+                target: "https://lovan.site/search?q={search_term_string}",
+                "query-input": "required name=search_term_string",
+              },
+            },
+            {
+              "@type": "Organization",
+              "@id": "https://lovan.site/#organization",
+              name: "LOVAN",
+              url: "https://lovan.site/",
+              logo: {
+                "@type": "ImageObject",
+                url: "https://lovan.site/icon-512.png",
+                width: 512,
+                height: 512,
+              },
+              image: "https://lovan.site/og-lovan.jpg?v=2",
+            },
+          ],
+        }),
+      },
     ],
     links: [
       {
