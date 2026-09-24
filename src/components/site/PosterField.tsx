@@ -107,13 +107,52 @@ export function PosterField({
             </div>
           ) : null}
 
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             <input
               value={webUrl}
               onChange={(e) => setWebUrl(e.target.value)}
-              placeholder="Paste a picture link"
-              className="min-w-0 flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
+              onPaste={(e) => {
+                const file = Array.from(e.clipboardData.files).find((f) => f.type.startsWith("image/"));
+                if (file) {
+                  e.preventDefault();
+                  void pick(file);
+                }
+              }}
+              inputMode="url"
+              autoComplete="off"
+              placeholder="Paste a picture link or picture"
+              className="min-w-0 flex-1 select-text rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground"
             />
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setError(null);
+                void (async () => {
+                  try {
+                    if (navigator.clipboard?.read) {
+                      const items = await navigator.clipboard.read();
+                      for (const item of items) {
+                        const type = item.types.find((t) => t.startsWith("image/"));
+                        if (type) {
+                          const blob = await item.getType(type);
+                          await pick(new File([blob], `pasted.${type.split("/")[1] ?? "png"}`, { type }));
+                          return;
+                        }
+                      }
+                    }
+                    const text = await navigator.clipboard.readText();
+                    if (text.trim()) setWebUrl(text.trim());
+                    else setError("Nothing to paste. Copy a picture or its link first.");
+                  } catch {
+                    setError("Your browser blocked pasting. Long press the box and choose Paste.");
+                  }
+                })();
+              }}
+              className="shrink-0 rounded-md border border-border px-3 py-1.5 text-sm text-foreground disabled:opacity-50"
+            >
+              Paste
+            </button>
             <button
               type="button"
               disabled={busy || !webUrl.trim()}
