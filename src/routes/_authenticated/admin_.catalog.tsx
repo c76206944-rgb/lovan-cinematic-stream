@@ -161,7 +161,7 @@ function CatalogPage() {
             poster_url: e.poster_url,
             video_path: e.video_path,
           },
-        }).then(() => setEditing(null)),
+        }).then(() => closeEdit()),
       "Changes saved.",
     );
   };
