@@ -308,3 +308,19 @@ export const bulkUpdateTitles = createServerFn({ method: "POST" })
     }
     return { updated, noVideo };
   });
+
+
+export const createUploadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ path: z.string().regex(/^videos\/[A-Za-z0-9._-]+$/, "Invalid file path.") }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("media")
+      .createSignedUploadUrl(data.path, { upsert: true });
+    if (error || !signed) throw new Error(error?.message ?? "Could not prepare the upload.");
+    return { signedUrl: signed.signedUrl, path: signed.path };
+  });
