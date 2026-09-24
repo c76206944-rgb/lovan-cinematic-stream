@@ -23,31 +23,43 @@ export type Job = {
   warnings?: string[];
 };
 
-const MAX_PARALLEL = 3;
+const MAX_PARALLEL = 2;
 let jobs: Job[] = [];
 const listeners = new Set<() => void>();
 const active = new Map<string, TusUpload>();
 
 /* ---------- Session & Authentication Refresh Helpers ---------- */
+let refreshing: Promise<string | null> | null = null;
+
+// A real user token is a JWT: three dot-separated parts, never the sb_publishable_ key.
+const looksLikeJwt = (t?: string | null): t is string =>
+  !!t && !t.startsWith("sb_") && t.split(".").length === 3;
+
 export async function getValidSessionToken(forceRefresh = false): Promise<string> {
-  try {
-    const { data } = await supabase.auth.getSession();
-    const session = data?.session;
-    const nowSec = Math.floor(Date.now() / 1000);
-    if (!forceRefresh && session?.access_token && session.expires_at && session.expires_at - nowSec > 60) {
-      return session.access_token;
-    }
-    const { data: refData, error } = await supabase.auth.refreshSession();
-    if (!error && refData?.session?.access_token) {
-      return refData.session.access_token;
-    }
-    if (session?.access_token) {
-      return session.access_token;
-    }
-  } catch (err) {
-    console.warn("Session token refresh check encountered an error:", err);
+  const { data } = await supabase.auth.getSession();
+  const session = data?.session;
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  if (!forceRefresh && looksLikeJwt(session?.access_token) && (session?.expires_at ?? 0) - nowSec > 60) {
+    return session!.access_token;
   }
-  throw new Error("Your session has ended. Please sign in again.");
+
+  // Single-flight: parallel uploads share one refresh instead of racing each other.
+  refreshing ??= supabase.auth
+    .refreshSession()
+    .then(({ data: d, error }) =>
+      !error && looksLikeJwt(d.session?.access_token) ? d.session!.access_token : null,
+    )
+    .catch(() => null)
+    .finally(() => {
+      refreshing = null;
+    });
+
+  const fresh = await refreshing;
+  if (fresh) return fresh;
+  if (looksLikeJwt(session?.access_token)) return session!.access_token;
+
+  throw new Error("Your session is invalid or expired. Sign out, sign in again, then press Retry.");
 }
 
 /* ---------- Persistence (IndexedDB keeps file & resume state) ---------- */
@@ -273,6 +285,7 @@ async function upload(job: Job): Promise<string> {
   
   // Obtain current or refreshed token
   const token = await getValidSessionToken();
+  console.log("[upload] token parts:", token.split(".").length, "prefix:", token.slice(0, 12));
   const base = (import.meta.env["VITE_SUPABASE_URL"] || "") as string;
   const key = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
   const tus = await loadTus();
@@ -289,14 +302,23 @@ async function upload(job: Job): Promise<string> {
           }
         } catch { /* retain existing authorization header */ }
       },
-      onShouldRetry: (err: any, retryAttempt: number) => {
-        const status = err?.originalResponse?.getStatus ? err.originalResponse.getStatus() : err?.status;
-        if (status === 401 || status === 403) {
-          // Token expired during chunk upload: refresh token and retry
-          void supabase.auth.refreshSession().catch(() => {});
-          return retryAttempt < 5;
+      onShouldRetry: (err: any, attempt: number) => {
+        const res = err?.originalResponse;
+        const status: number = res?.getStatus?.() ?? 0;
+        const body: string = res?.getBody?.() ?? "";
+        // Supabase Storage returns HTTP 400 with "statusCode":"403" in the body.
+        const isAuth =
+          status === 401 ||
+          status === 403 ||
+          /Invalid Compact JWS|Unauthorized|AccessDenied|exp.*claim/i.test(body);
+        if (isAuth) {
+          if (attempt >= 2) return false; // fail fast with a clear message
+          void getValidSessionToken(true).catch(() => {});
+          return true;
         }
-        return retryAttempt < 7;
+        // Other 4xx errors will not fix themselves (except conflict / locked / rate-limit).
+        if (status >= 400 && status < 500 && ![409, 423, 429].includes(status)) return false;
+        return attempt < 7;
       },
       metadata: {
         bucketName: "media",
@@ -387,9 +409,13 @@ async function run(job: Job) {
     const cur = jobs.find((j) => j.id === job.id);
     if (!cur || cur.state === "paused") return;
     const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    const raw = e instanceof Error ? e.message : "";
+    const msg = /Invalid Compact JWS|AccessDenied|Unauthorized/i.test(raw)
+      ? "Sign-in problem. Sign out, sign in again, then press Retry."
+      : raw || "Upload stopped. Press Retry.";
     patch(job.id, offline
       ? { state: "waiting", message: "Waiting for connection" }
-      : { state: "failed", message: e instanceof Error ? e.message : "Upload stopped. Press Retry." });
+      : { state: "failed", message: msg });
   } finally {
     pump();
   }
