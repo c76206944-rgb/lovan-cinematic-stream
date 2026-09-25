@@ -37,6 +37,7 @@ import { Route as TitleTitleIdRouteImport } from './routes/title.$titleId'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin_.analytics'
 import { Route as AuthenticatedAdminBulkRouteImport } from './routes/_authenticated/admin_.bulk'
 import { Route as AuthenticatedAdminCatalogRouteImport } from './routes/_authenticated/admin_.catalog'
+import { Route as AuthenticatedAdminDiagnosticsRouteImport } from './routes/_authenticated/admin_.diagnostics'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -179,6 +180,12 @@ const AuthenticatedAdminCatalogRoute =
     path: '/admin/catalog',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminDiagnosticsRoute =
+  AuthenticatedAdminDiagnosticsRouteImport.update({
+    id: '/admin_/diagnostics',
+    path: '/admin/diagnostics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/bulk': typeof AuthenticatedAdminBulkRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/admin/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -237,6 +245,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/bulk': typeof AuthenticatedAdminBulkRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/admin/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -268,6 +277,7 @@ export interface FileRoutesById {
   '/_authenticated/admin_/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin_/bulk': typeof AuthenticatedAdminBulkRoute
   '/_authenticated/admin_/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/_authenticated/admin_/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/bulk'
     | '/admin/catalog'
+    | '/admin/diagnostics'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -328,6 +339,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/bulk'
     | '/admin/catalog'
+    | '/admin/diagnostics'
   id:
     | '__root__'
     | '/'
@@ -358,6 +370,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin_/analytics'
     | '/_authenticated/admin_/bulk'
     | '/_authenticated/admin_/catalog'
+    | '/_authenticated/admin_/diagnostics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -585,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCatalogRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin_/diagnostics': {
+      id: '/_authenticated/admin_/diagnostics'
+      path: '/admin/diagnostics'
+      fullPath: '/admin/diagnostics'
+      preLoaderRoute: typeof AuthenticatedAdminDiagnosticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -593,6 +613,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminBulkRoute: typeof AuthenticatedAdminBulkRoute
   AuthenticatedAdminCatalogRoute: typeof AuthenticatedAdminCatalogRoute
+  AuthenticatedAdminDiagnosticsRoute: typeof AuthenticatedAdminDiagnosticsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -600,6 +621,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminBulkRoute: AuthenticatedAdminBulkRoute,
   AuthenticatedAdminCatalogRoute: AuthenticatedAdminCatalogRoute,
+  AuthenticatedAdminDiagnosticsRoute: AuthenticatedAdminDiagnosticsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
