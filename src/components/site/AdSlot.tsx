@@ -8,6 +8,7 @@ import { AD_TAG_SRC, BANNER_ZONE, adsAllowed, countAd } from "@/lib/ads";
  */
 export function AdSlot({ placement }: { placement: "banner" | "sponsored_card" }) {
   const host = useRef<HTMLDivElement>(null);
+  const counted = useRef(false);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -15,7 +16,10 @@ export function AdSlot({ placement }: { placement: "banner" | "sponsored_card" }
     if (document.querySelector("video:not([paused])")) return;
     const node = host.current;
     if (!node) return;
-    if (!countAd()) return;
+    if (!counted.current) {
+      if (!countAd()) return;
+      counted.current = true;
+    }
 
     const s = document.createElement("script");
     s.src = AD_TAG_SRC;
