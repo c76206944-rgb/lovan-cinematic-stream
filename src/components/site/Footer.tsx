@@ -11,6 +11,7 @@ const links = [
   { to: "/terms", label: "Terms" },
   { to: "/privacy", label: "Privacy" },
   { to: "/cookie-policy", label: "Cookie Policy" },
+  { to: "/ad-choices", label: "Ad choices" },
 ] as const;
 
 export function Footer() {

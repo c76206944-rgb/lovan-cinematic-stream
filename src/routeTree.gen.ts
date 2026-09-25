@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AdChoicesRouteImport } from './routes/ad-choices'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CookiePolicyRouteImport } from './routes/cookie-policy'
@@ -36,6 +37,7 @@ import { Route as TitleTitleIdRouteImport } from './routes/title.$titleId'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin_.analytics'
 import { Route as AuthenticatedAdminBulkRouteImport } from './routes/_authenticated/admin_.bulk'
 import { Route as AuthenticatedAdminCatalogRouteImport } from './routes/_authenticated/admin_.catalog'
+import { Route as AuthenticatedAdminDiagnosticsRouteImport } from './routes/_authenticated/admin_.diagnostics'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -44,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdChoicesRoute = AdChoicesRouteImport.update({
+  id: '/ad-choices',
+  path: '/ad-choices',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -173,9 +180,16 @@ const AuthenticatedAdminCatalogRoute =
     path: '/admin/catalog',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminDiagnosticsRoute =
+  AuthenticatedAdminDiagnosticsRouteImport.update({
+    id: '/admin_/diagnostics',
+    path: '/admin/diagnostics',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ad-choices': typeof AdChoicesRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
@@ -201,9 +215,11 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/bulk': typeof AuthenticatedAdminBulkRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/admin/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ad-choices': typeof AdChoicesRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
@@ -229,11 +245,13 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/bulk': typeof AuthenticatedAdminBulkRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/admin/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/ad-choices': typeof AdChoicesRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/cookie-policy': typeof CookiePolicyRoute
@@ -259,11 +277,13 @@ export interface FileRoutesById {
   '/_authenticated/admin_/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin_/bulk': typeof AuthenticatedAdminBulkRoute
   '/_authenticated/admin_/catalog': typeof AuthenticatedAdminCatalogRoute
+  '/_authenticated/admin_/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ad-choices'
     | '/auth'
     | '/contact'
     | '/cookie-policy'
@@ -289,9 +309,11 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/bulk'
     | '/admin/catalog'
+    | '/admin/diagnostics'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ad-choices'
     | '/auth'
     | '/contact'
     | '/cookie-policy'
@@ -317,10 +339,12 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/bulk'
     | '/admin/catalog'
+    | '/admin/diagnostics'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/ad-choices'
     | '/auth'
     | '/contact'
     | '/cookie-policy'
@@ -346,11 +370,13 @@ export interface FileRouteTypes {
     | '/_authenticated/admin_/analytics'
     | '/_authenticated/admin_/bulk'
     | '/_authenticated/admin_/catalog'
+    | '/_authenticated/admin_/diagnostics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AdChoicesRoute: typeof AdChoicesRoute
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   CookiePolicyRoute: typeof CookiePolicyRoute
@@ -388,6 +414,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ad-choices': {
+      id: '/ad-choices'
+      path: '/ad-choices'
+      fullPath: '/ad-choices'
+      preLoaderRoute: typeof AdChoicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -565,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCatalogRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin_/diagnostics': {
+      id: '/_authenticated/admin_/diagnostics'
+      path: '/admin/diagnostics'
+      fullPath: '/admin/diagnostics'
+      preLoaderRoute: typeof AuthenticatedAdminDiagnosticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -573,6 +613,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminBulkRoute: typeof AuthenticatedAdminBulkRoute
   AuthenticatedAdminCatalogRoute: typeof AuthenticatedAdminCatalogRoute
+  AuthenticatedAdminDiagnosticsRoute: typeof AuthenticatedAdminDiagnosticsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -580,6 +621,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminBulkRoute: AuthenticatedAdminBulkRoute,
   AuthenticatedAdminCatalogRoute: AuthenticatedAdminCatalogRoute,
+  AuthenticatedAdminDiagnosticsRoute: AuthenticatedAdminDiagnosticsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -588,6 +630,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AdChoicesRoute: AdChoicesRoute,
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   CookiePolicyRoute: CookiePolicyRoute,

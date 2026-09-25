@@ -15,7 +15,9 @@ import { Header, MobileNav } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { UploadDock } from "@/components/site/UploadDock";
 import { Toaster } from "@/components/ui/sonner";
-import { loadMultitag } from "@/lib/ads";
+import { ConsentBanner } from "@/components/site/ConsentBanner";
+import { loadMultitag, setStaffMode, getConsent, onAdStateChange } from "@/lib/ads";
+import { useAccount } from "@/lib/use-account";
 
 
 function NotFoundComponent() {
@@ -189,6 +191,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const account = useAccount();
+
+  useEffect(() => {
+    if (!account.ready) return;
+    setStaffMode(account.staff);
+  }, [account.ready, account.staff]);
 
   useEffect(() => {
     if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
@@ -198,15 +206,21 @@ function RootComponent() {
       void navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => void r.unregister()));
       return;
     }
-    void navigator.serviceWorker.register("/sw.js").catch(() => {});
+    const consent = getConsent();
+    const url = consent?.push ? "/sw.js?push=1" : "/sw.js";
+    void navigator.serviceWorker.register(url).catch(() => {});
   }, []);
 
   useEffect(() => {
     const inFrame = window.self !== window.top;
     if (inFrame) return;
-    const t = window.setTimeout(() => loadMultitag(), 1200);
-    return () => window.clearTimeout(t);
-  }, []);
+    if (!account.ready) return;
+    const tick = () => {
+      window.setTimeout(() => loadMultitag(), 1200);
+    };
+    tick();
+    return onAdStateChange(tick);
+  }, [account.ready]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -219,6 +233,7 @@ function RootComponent() {
         <Footer />
         <MobileNav />
         <UploadDock />
+        <ConsentBanner />
         <Toaster position="top-center" />
       </div>
     </QueryClientProvider>
