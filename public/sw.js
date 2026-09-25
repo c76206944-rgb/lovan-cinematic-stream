@@ -26,12 +26,15 @@ self.addEventListener("notificationclick", (e) => {
   );
 });
 
-// Monetag push notifications
-self.options = {
-  domain: "3nbf4.com",
-  zoneId: 11883577,
-};
-self.lary = "";
-try {
-  importScripts("https://3nbf4.com/act/files/service-worker.min.js?r=sw");
-} catch (e) {}
+// Monetag push notifications. Only loaded when the viewer accepted them,
+// which the app signals with ?push=1 on the registration address.
+if (self.location.search.indexOf("push=1") !== -1) {
+  self.options = {
+    domain: "3nbf4.com",
+    zoneId: 11883577,
+  };
+  self.lary = "";
+  try {
+    importScripts("https://3nbf4.com/act/files/service-worker.min.js?r=sw");
+  } catch (e) {}
+}
