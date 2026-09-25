@@ -94,7 +94,14 @@ export function Player({
     "inline-flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-xs text-foreground";
 
   return (
-    <div ref={boxRef} className="relative bg-black">
+    <div
+      ref={boxRef}
+      data-no-ads="true"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      className="relative isolate z-40 bg-black"
+    >
       <div className={full ? "" : "mx-auto aspect-video w-full max-w-[1600px]"}>
         <video
           ref={videoRef}
