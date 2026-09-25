@@ -13,6 +13,9 @@ export const MULTITAG_ZONE = "286079";
 export const BANNER_ZONE = "286079";
 /** Monetag tag host. */
 export const AD_TAG_SRC = "https://quge5.com/88/tag.min.js";
+/** Extra Monetag In-Page Push zone ("Optimistic tag"). */
+export const INPAGE_ZONE = "11885055";
+export const INPAGE_TAG_SRC = "https://nap5k.com/tag.min.js";
 
 const KEY = "lovan-ad-count";
 
@@ -76,5 +79,13 @@ export function loadMultitag(): void {
   s.dataset["zone"] = MULTITAG_ZONE;
   s.setAttribute("data-cfasync", "false");
   document.head.appendChild(s);
+
+  const push = document.createElement("script");
+  push.src = INPAGE_TAG_SRC;
+  push.async = true;
+  push.dataset["zone"] = INPAGE_ZONE;
+  push.setAttribute("data-cfasync", "false");
+  document.head.appendChild(push);
+
   countAd();
 }
