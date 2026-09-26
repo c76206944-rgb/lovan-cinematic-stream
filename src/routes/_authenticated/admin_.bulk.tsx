@@ -4,7 +4,6 @@ import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { useAccount } from "@/lib/use-account";
 import {
   addJobs,
-  guessFromFile,
   useJobs,
   retryJob,
   cancelJob,
@@ -18,6 +17,7 @@ import {
   getValidSessionToken,
   type Job,
 } from "@/lib/upload-queue";
+import { collectDropped, guessFromPath, isVideoFile, relPath, type PickedFile } from "@/lib/folder-files";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin_/bulk")({
@@ -80,21 +80,41 @@ function BulkPage() {
     };
   }, []);
 
-  const pick = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const validFiles: File[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!file) continue;
-      if (file.size === 0) {
-        toast.error(`"${file.name}" is empty (0 bytes) and was skipped.`);
-        continue;
-      }
-      validFiles.push(file);
+  const addPicked = (picked: PickedFile[], skippedNonVideo = 0) => {
+    const valid = picked.filter((p) => p.file.size > 0);
+    if (valid.length === 0) {
+      toast.error(skippedNonVideo > 0 ? "No video files were found in that folder." : "No usable video files were chosen.");
+      return;
     }
-    if (validFiles.length === 0) return;
-    const next = validFiles.map((file) => ({ file, publish: false, ...guessFromFile(file) }));
+    const next = valid.map(({ file, path }) => ({ file, publish: false, ...guessFromPath(path) }));
     setDrafts((d) => [...d, ...next]);
+    const skipped = skippedNonVideo;
+    toast.success(
+      `${valid.length} video${valid.length === 1 ? "" : "s"} added${skipped > 0 ? `, ${skipped} other file${skipped === 1 ? "" : "s"} skipped` : ""}.`,
+    );
+  };
+
+  const pick = (files: FileList | null, folderMode = false) => {
+    if (!files || files.length === 0) return;
+    const all = Array.from(files).filter(Boolean);
+    const videos = all.filter((f) => isVideoFile(f.name));
+    const list = folderMode ? videos : all.filter((f) => f.size > 0);
+    if (folderMode) {
+      addPicked(videos.map((file) => ({ file, path: relPath(file) })), all.length - videos.length);
+      return;
+    }
+    const emptied = list.filter((f) => f.size === 0);
+    emptied.forEach((f) => toast.error(`"${f.name}" is empty (0 bytes) and was skipped.`));
+    addPicked(list.filter((f) => f.size > 0).map((file) => ({ file, path: relPath(file) })));
+  };
+
+  const dropped = async (dt: DataTransfer) => {
+    const picked = await collectDropped(dt);
+    if (picked.length === 0) {
+      toast.error("No video files were found in what you dropped.");
+      return;
+    }
+    addPicked(picked);
   };
 
   const edit = (i: number, p: Partial<Draft>) => setDrafts((d) => d.map((x, k) => (k === i ? { ...x, ...p } : x)));
@@ -147,7 +167,7 @@ function BulkPage() {
           </div>
         ) : null}
 
-        <label
+        <div
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -162,25 +182,45 @@ function BulkPage() {
             e.preventDefault();
             e.stopPropagation();
             setIsDragging(false);
-            if (e.dataTransfer.files) pick(e.dataTransfer.files);
+            void dropped(e.dataTransfer);
           }}
-          className={`mt-6 flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center text-sm transition-colors ${
-            isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary hover:bg-muted/10"
+          className={`mt-6 flex flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center text-sm transition-colors ${
+            isDragging ? "border-primary bg-primary/10" : "border-border"
           }`}
         >
-          <span className="font-medium text-foreground">Choose or drop video files here</span>
-          <span className="mt-1 text-muted-foreground">Films and episodes. Supports single files or large batches.</span>
-          <input
-            type="file"
-            accept="video/*,.m3u8,.mkv,.avi,.mp4,.mov,.webm"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              pick(e.target.files);
-              e.target.value = "";
-            }}
-          />
-        </label>
+          <span className="font-medium text-foreground">Drop video files or whole folders here</span>
+          <span className="mt-1 text-muted-foreground">
+            Folders are opened right through, and files that are not videos are left out.
+          </span>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <label className="cursor-pointer rounded-md border border-input px-3 py-2 text-xs font-medium hover:border-primary">
+              Choose files
+              <input
+                type="file"
+                accept="video/*,.m3u8,.mkv,.avi,.mp4,.mov,.webm"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  pick(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <label className="cursor-pointer rounded-md border border-input px-3 py-2 text-xs font-medium hover:border-primary">
+              Choose folder
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+                onChange={(e) => {
+                  pick(e.target.files, true);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+        </div>
 
         {drafts.length ? (
           <div className="mt-6 space-y-3">
