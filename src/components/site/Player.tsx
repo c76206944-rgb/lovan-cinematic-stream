@@ -16,19 +16,31 @@ export function Player({
   src,
   tracks = [],
   onExit,
+  startAt = 0,
+  onProgress,
 }: {
   src: string;
   tracks?: SubtitleTrack[];
   onExit?: () => void;
+  startAt?: number;
+  onProgress?: (position: number, duration: number) => void;
 }) {
   const boxRef = useRef<FullscreenBox | null>(null);
   const videoRef = useRef<FullscreenVideo | null>(null);
+  const lastSaved = useRef(0);
   const [full, setFull] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [speedOpen, setSpeedOpen] = useState(false);
   const [subOpen, setSubOpen] = useState(false);
   const [subtitle, setSubtitle] = useState<string>("off");
   const [noPicture, setNoPicture] = useState(false);
+  const report = (v: HTMLVideoElement, force = false) => {
+    if (!onProgress) return;
+    const now = Date.now();
+    if (!force && now - lastSaved.current < 10_000) return;
+    lastSaved.current = now;
+    onProgress(v.currentTime, v.duration);
+  };
 
   const goFullscreen = async () => {
     const box = boxRef.current;
@@ -113,7 +125,13 @@ export function Player({
           {...(tracks.length > 0 ? { crossOrigin: "anonymous" as const } : {})}
           controlsList="nodownload"
           onContextMenu={(e) => e.preventDefault()}
-          onLoadedMetadata={(e) => setNoPicture(e.currentTarget.videoWidth === 0)}
+          onLoadedMetadata={(e) => {
+            setNoPicture(e.currentTarget.videoWidth === 0);
+            if (startAt > 0) e.currentTarget.currentTime = startAt;
+          }}
+          onTimeUpdate={(e) => report(e.currentTarget)}
+          onPause={(e) => report(e.currentTarget, true)}
+          onEnded={(e) => report(e.currentTarget, true)}
           onPlaying={(e) => {
             const v = e.currentTarget as HTMLVideoElement & {
               getVideoPlaybackQuality?: () => { totalVideoFrames: number };

@@ -125,6 +125,36 @@ export type Database = {
         }
         Relationships: []
       }
+      collections: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          placement: string
+          position: number
+          published: boolean
+          title_ids: string[]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          placement?: string
+          position?: number
+          published?: boolean
+          title_ids?: string[]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          placement?: string
+          position?: number
+          published?: boolean
+          title_ids?: string[]
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_language: string
@@ -274,6 +304,64 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      watch_progress: {
+        Row: {
+          duration_seconds: number
+          position_seconds: number
+          title_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          duration_seconds?: number
+          position_seconds?: number
+          title_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          duration_seconds?: number
+          position_seconds?: number
+          title_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_progress_title_id_fkey"
+            columns: ["title_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_titles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watchlist: {
+        Row: {
+          created_at: string
+          title_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          title_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          title_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_title_id_fkey"
+            columns: ["title_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_titles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
