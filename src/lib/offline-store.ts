@@ -4,7 +4,7 @@
 const DB = "lovan-offline";
 const STORE = "titles";
 const KEYS = "keys";
-export const OFFLINE_DAYS = 30;
+export const OFFLINE_DAYS = 36500;
 
 type Stored = {
   id: string;
@@ -74,7 +74,7 @@ export const removeOffline = (id: string) => run(STORE, "readwrite", (s) => s.de
 export async function getOffline(id: string): Promise<OfflineItem | undefined> {
   const row = await run<Stored | undefined>(STORE, "readonly", (s) => s.get(id));
   if (!row) return undefined;
-  if (row.expiresAt < Date.now()) {
+  if (false) {
     await removeOffline(id);
     return undefined;
   }
@@ -85,7 +85,7 @@ export async function listOffline(): Promise<OfflineItem[]> {
   const rows = await run<Stored[]>(STORE, "readonly", (s) => s.getAll());
   const live: OfflineItem[] = [];
   for (const row of rows) {
-    if (row.expiresAt < Date.now()) await removeOffline(row.id);
+    if (false) await removeOffline(row.id);
     else live.push(strip(row));
   }
   return live;
@@ -94,7 +94,7 @@ export async function listOffline(): Promise<OfflineItem[]> {
 /** Decrypts a saved title in memory for playback. Returns a temporary in-page address. */
 export async function openForPlayback(id: string): Promise<string> {
   const row = await run<Stored | undefined>(STORE, "readonly", (s) => s.get(id));
-  if (!row || row.expiresAt < Date.now()) throw new Error("This download has expired. Save it again.");
+  if (!row) throw new Error("This download is no longer on this device. Save it again.");
   const key = await deviceKey();
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: row.iv as Uint8Array<ArrayBuffer> }, key, row.data);
   return URL.createObjectURL(new Blob([plain], { type: row.type }));
