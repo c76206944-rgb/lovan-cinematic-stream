@@ -142,11 +142,9 @@ export function fillAdCount(): void {
   listeners.forEach((fn) => fn());
 }
 
-/** True when adverts may run right now: consent given, not staff, under the cap. */
+/** True when adverts may run right now: not staff and under the daily cap. */
 export function adsAllowed(): boolean {
   if (staffMode) return false;
-  const consent = getConsent();
-  if (!consent || !consent.ads) return false;
   return adsSeenToday() < DAILY_AD_LIMIT;
 }
 

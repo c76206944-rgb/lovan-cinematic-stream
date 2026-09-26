@@ -36,7 +36,7 @@ function DownloadsPage() {
     <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6">
       <PageHeading
         title="Downloads"
-        description="Saved titles play here without a connection. They are stored encrypted inside LOVAN on this device, expire after 30 days, and cannot be exported or shared."
+        description="Saved titles play here without a connection. They are stored encrypted inside LOVAN on this device, stay until you remove them, and cannot be exported or shared."
       />
       {err ? <p className="mb-4 text-sm text-primary">{err}</p> : null}
       {playing ? (
@@ -64,7 +64,7 @@ function DownloadsPage() {
               <div>
                 <p className="text-sm text-foreground">{item.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {(item.bytes / 1024 / 1024).toFixed(0)} MB · saved {new Date(item.savedAt).toLocaleDateString()} · expires {new Date(item.expiresAt).toLocaleDateString()}
+                  {(item.bytes / 1024 / 1024).toFixed(0)} MB · saved {new Date(item.savedAt).toLocaleDateString()}
                 </p>
               </div>
               <div className="flex gap-2">

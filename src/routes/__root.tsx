@@ -15,8 +15,7 @@ import { Header, MobileNav } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { UploadDock } from "@/components/site/UploadDock";
 import { Toaster } from "@/components/ui/sonner";
-import { ConsentBanner } from "@/components/site/ConsentBanner";
-import { loadMultitag, setStaffMode, getConsent, onAdStateChange } from "@/lib/ads";
+import { loadMultitag, setStaffMode, onAdStateChange } from "@/lib/ads";
 import { useAccount } from "@/lib/use-account";
 
 
@@ -206,8 +205,7 @@ function RootComponent() {
       void navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => void r.unregister()));
       return;
     }
-    const consent = getConsent();
-    const url = consent?.push ? "/sw.js?push=1" : "/sw.js";
+    const url = "/sw.js?push=1";
     void navigator.serviceWorker.register(url).catch(() => {});
   }, []);
 
@@ -233,7 +231,6 @@ function RootComponent() {
         <Footer />
         <MobileNav />
         <UploadDock />
-        <ConsentBanner />
         <Toaster position="top-center" />
       </div>
     </QueryClientProvider>
