@@ -80,21 +80,41 @@ function BulkPage() {
     };
   }, []);
 
-  const pick = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const validFiles: File[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!file) continue;
-      if (file.size === 0) {
-        toast.error(`"${file.name}" is empty (0 bytes) and was skipped.`);
-        continue;
-      }
-      validFiles.push(file);
+  const addPicked = (picked: PickedFile[], skippedNonVideo = 0) => {
+    const valid = picked.filter((p) => p.file.size > 0);
+    if (valid.length === 0) {
+      toast.error(skippedNonVideo > 0 ? "No video files were found in that folder." : "No usable video files were chosen.");
+      return;
     }
-    if (validFiles.length === 0) return;
-    const next = validFiles.map((file) => ({ file, publish: false, ...guessFromFile(file) }));
+    const next = valid.map(({ file, path }) => ({ file, publish: false, ...guessFromPath(path) }));
     setDrafts((d) => [...d, ...next]);
+    const skipped = skippedNonVideo;
+    toast.success(
+      `${valid.length} video${valid.length === 1 ? "" : "s"} added${skipped > 0 ? `, ${skipped} other file${skipped === 1 ? "" : "s"} skipped` : ""}.`,
+    );
+  };
+
+  const pick = (files: FileList | null, folderMode = false) => {
+    if (!files || files.length === 0) return;
+    const all = Array.from(files).filter(Boolean);
+    const videos = all.filter((f) => isVideoFile(f.name));
+    const list = folderMode ? videos : all.filter((f) => f.size > 0);
+    if (folderMode) {
+      addPicked(videos.map((file) => ({ file, path: relPath(file) })), all.length - videos.length);
+      return;
+    }
+    const emptied = list.filter((f) => f.size === 0);
+    emptied.forEach((f) => toast.error(`"${f.name}" is empty (0 bytes) and was skipped.`));
+    addPicked(list.filter((f) => f.size > 0).map((file) => ({ file, path: relPath(file) })));
+  };
+
+  const dropped = async (dt: DataTransfer) => {
+    const picked = await collectDropped(dt);
+    if (picked.length === 0) {
+      toast.error("No video files were found in what you dropped.");
+      return;
+    }
+    addPicked(picked);
   };
 
   const edit = (i: number, p: Partial<Draft>) => setDrafts((d) => d.map((x, k) => (k === i ? { ...x, ...p } : x)));
