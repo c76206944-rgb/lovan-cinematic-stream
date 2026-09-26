@@ -168,7 +168,7 @@ function BulkPage() {
           </div>
         ) : null}
 
-        <label
+        <div
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -183,25 +183,45 @@ function BulkPage() {
             e.preventDefault();
             e.stopPropagation();
             setIsDragging(false);
-            if (e.dataTransfer.files) pick(e.dataTransfer.files);
+            void dropped(e.dataTransfer);
           }}
-          className={`mt-6 flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center text-sm transition-colors ${
-            isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary hover:bg-muted/10"
+          className={`mt-6 flex flex-col items-center justify-center rounded-lg border border-dashed px-4 py-10 text-center text-sm transition-colors ${
+            isDragging ? "border-primary bg-primary/10" : "border-border"
           }`}
         >
-          <span className="font-medium text-foreground">Choose or drop video files here</span>
-          <span className="mt-1 text-muted-foreground">Films and episodes. Supports single files or large batches.</span>
-          <input
-            type="file"
-            accept="video/*,.m3u8,.mkv,.avi,.mp4,.mov,.webm"
-            multiple
-            className="hidden"
-            onChange={(e) => {
-              pick(e.target.files);
-              e.target.value = "";
-            }}
-          />
-        </label>
+          <span className="font-medium text-foreground">Drop video files or whole folders here</span>
+          <span className="mt-1 text-muted-foreground">
+            Folders are opened right through, and files that are not videos are left out.
+          </span>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <label className="cursor-pointer rounded-md border border-input px-3 py-2 text-xs font-medium hover:border-primary">
+              Choose files
+              <input
+                type="file"
+                accept="video/*,.m3u8,.mkv,.avi,.mp4,.mov,.webm"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  pick(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <label className="cursor-pointer rounded-md border border-input px-3 py-2 text-xs font-medium hover:border-primary">
+              Choose folder
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+                onChange={(e) => {
+                  pick(e.target.files, true);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+        </div>
 
         {drafts.length ? (
           <div className="mt-6 space-y-3">
