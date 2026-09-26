@@ -64,6 +64,13 @@
       "when": 1790278026996,
       "tag": "0008_catalog_subtitles",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790438175274,
+      "tag": "0009_watch_list_progress_collections",
+      "breakpoints": true
     }
   ]
 }
