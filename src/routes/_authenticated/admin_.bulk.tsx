@@ -18,6 +18,7 @@ import {
   getValidSessionToken,
   type Job,
 } from "@/lib/upload-queue";
+import { collectDropped, guessFromPath, isVideoFile, relPath, type PickedFile } from "@/lib/folder-files";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin_/bulk")({
