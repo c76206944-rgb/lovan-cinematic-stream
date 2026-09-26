@@ -20,6 +20,7 @@ export function relPath(file: File) {
 type FsEntry = {
   isFile: boolean;
   isDirectory: boolean;
+  name: string;
   fullPath: string;
   file: (cb: (f: File) => void, err?: (e: unknown) => void) => void;
   createReader: () => { readEntries: (cb: (e: FsEntry[]) => void, err?: (e: unknown) => void) => void };
