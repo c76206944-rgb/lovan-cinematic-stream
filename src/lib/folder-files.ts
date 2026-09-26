@@ -51,7 +51,7 @@ async function walk(entry: FsEntry, prefix: string, out: PickedFile[]): Promise<
   }
   if (entry.isDirectory) {
     const children = await readAll(entry);
-    const next = prefix ? `${prefix}/${entry.name ?? ""}` : (entry as unknown as { name?: string }).name || "";
+    const next = prefix ? `${prefix}/${entry.name}` : entry.name;
     for (const child of children) await walk(child, next, out);
   }
 }
