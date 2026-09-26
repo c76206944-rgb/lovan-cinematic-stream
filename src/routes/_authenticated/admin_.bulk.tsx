@@ -4,7 +4,6 @@ import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { useAccount } from "@/lib/use-account";
 import {
   addJobs,
-  guessFromFile,
   useJobs,
   retryJob,
   cancelJob,
