@@ -13,6 +13,7 @@ import { getPlaybackUrl } from "@/lib/public-catalog.functions";
 
 import { downloadToApp, getOffline, saveOffline } from "@/lib/offline-store";
 import { useAccount } from "@/lib/use-account";
+import { loadProgress, saveProgress, useWatchlist } from "@/lib/viewer";
 import { catalogQuery, useCatalog } from "@/lib/use-catalog";
 
 type ViewTitle = Title;
@@ -109,6 +110,10 @@ function TitleDetails() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [tracks, setTracks] = useState<{ lang: string; label: string; url: string }[]>([]);
   const [playMsg, setPlayMsg] = useState<string | null>(null);
+  const [startAt, setStartAt] = useState(0);
+  const account = useAccount();
+  const list = useWatchlist();
+  const saved = list.ids.includes(title.id);
   useEffect(() => { setVideoUrl(null); setPlayMsg(null); setTracks([]); }, [title.id]);
   const episodes = title.kind === "series"
     ? titles.filter((t) => t.kind === "series" && t.seriesName.toLowerCase() === title.seriesName.toLowerCase())
@@ -121,6 +126,7 @@ function TitleDetails() {
     setPlayMsg(null);
     try {
       const { url } = await play({ data: { id: title.id } });
+      setStartAt(account.userId ? await loadProgress(title.id).catch(() => 0) : 0);
       setVideoUrl(url);
       window.scrollTo({ top: 0, behavior: "smooth" });
       void loadTracks({ data: { id: title.id } }).then(setTracks).catch(() => setTracks([]));
@@ -133,7 +139,7 @@ function TitleDetails() {
     <div className="pb-16">
       {videoUrl ? (
         <section className="bg-background">
-          <Player src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} />
+          <Player src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} startAt={startAt} onProgress={account.userId ? (p, d) => void saveProgress(account.userId!, title.id, p, d) : undefined} />
         </section>
       ) : (
       <section className="relative">
@@ -182,10 +188,11 @@ function TitleDetails() {
               </button>
               <button
                 type="button"
+                onClick={async () => { const ok = await list.toggle(title.id); if (!ok) setPlayMsg("Sign in to save titles to My List."); }}
                 className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface"
               >
                 <Plus className="size-4" strokeWidth={1.5} />
-                Add to My List
+                {saved ? "In My List" : "Add to My List"}
               </button>
               <DownloadButton title={title} />
               <button

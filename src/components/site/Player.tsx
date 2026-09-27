@@ -23,7 +23,7 @@ export function Player({
   tracks?: SubtitleTrack[];
   onExit?: () => void;
   startAt?: number;
-  onProgress?: (position: number, duration: number) => void;
+  onProgress?: ((position: number, duration: number) => void) | undefined;
 }) {
   const boxRef = useRef<FullscreenBox | null>(null);
   const videoRef = useRef<FullscreenVideo | null>(null);
