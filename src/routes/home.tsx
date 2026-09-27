@@ -5,6 +5,8 @@ import { buildRails, collapseSeries } from "@/data/titles";
 import { Rail } from "@/components/site/Rail";
 import { AdSlot } from "@/components/site/AdSlot";
 import { useCatalog } from "@/lib/use-catalog";
+import { useCollections, useProgress } from "@/lib/viewer";
+import type { Rail as RailType, Title } from "@/data/titles";
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -30,8 +32,23 @@ export const Route = createFileRoute("/home")({
 
 function HomePage() {
   const { titles, loading } = useCatalog();
-  const hero = collapseSeries(titles)[0];
-  const rails = buildRails(titles);
+  const collections = useCollections().filter((c) => c.published);
+  const progress = useProgress();
+  const byId = (id: string) => titles.find((t) => t.id === id);
+  const pickIds = (ids: string[]) => ids.map(byId).filter((t): t is Title => Boolean(t));
+  const heroList = collections.find((c) => c.placement === "hero");
+  const hero = (heroList ? pickIds(heroList.title_ids)[0] : undefined) ?? collapseSeries(titles)[0];
+  const continueItems = pickIds(
+    progress.filter((p) => p.duration_seconds > 0 && p.position_seconds > 30 && p.position_seconds < p.duration_seconds - 30).map((p) => p.title_id),
+  );
+  const custom: RailType[] = collections
+    .filter((c) => c.placement === "rail")
+    .map((c) => ({ id: `col-${c.id}`, heading: c.label, items: pickIds(c.title_ids) }));
+  const rails = [
+    ...(continueItems.length ? [{ id: "continue", heading: "Continue watching", items: continueItems }] : []),
+    ...custom,
+    ...buildRails(titles),
+  ];
 
   if (!hero) {
     return (
