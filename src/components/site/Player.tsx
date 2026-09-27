@@ -87,6 +87,38 @@ export function Player({
     if (video) video.playbackRate = speed;
   }, [speed]);
 
+  // Subtitle files are copied into the page so the browser never blocks them.
+  const [local, setLocal] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let alive = true;
+    const made: string[] = [];
+    void Promise.all(
+      tracks.map(async (t) => {
+        try {
+          const text = await (await fetch(t.url)).text();
+          const url = URL.createObjectURL(new Blob([text], { type: "text/vtt" }));
+          made.push(url);
+          return [t.lang, url] as const;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((pairs) => {
+      if (!alive) return;
+      setLocal(Object.fromEntries(pairs.filter((p): p is readonly [string, string] => Boolean(p))));
+      // Like YouTube: turn on the viewer's last choice or their device language.
+      const saved = localStorage.getItem("lovan-subtitle");
+      if (saved === "off") return;
+      const device = navigator.language.slice(0, 2).toLowerCase();
+      const pick = tracks.find((t) => t.lang === saved) ?? tracks.find((t) => t.lang.slice(0, 2).toLowerCase() === device) ?? tracks[0];
+      if (pick) setSubtitle(pick.lang);
+    });
+    return () => {
+      alive = false;
+      made.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [tracks]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -95,7 +127,13 @@ export function Player({
       const track = list[i];
       if (track) track.mode = track.language === subtitle ? "showing" : "disabled";
     }
-  }, [subtitle, tracks.length]);
+  }, [subtitle, local]);
+
+  const chooseSubtitle = (lang: string) => {
+    setSubtitle(lang);
+    setSubOpen(false);
+    localStorage.setItem("lovan-subtitle", lang);
+  };
 
   const leave = async () => {
     if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
@@ -122,7 +160,6 @@ export function Player({
           autoPlay
           playsInline
           preload="auto"
-          {...(tracks.length > 0 ? { crossOrigin: "anonymous" as const } : {})}
           controlsList="nodownload"
           onContextMenu={(e) => e.preventDefault()}
           onLoadedMetadata={(e) => {
@@ -144,8 +181,8 @@ export function Player({
           }}
           className={`h-full w-full bg-black object-contain ${full ? "h-dvh" : ""}`}
         >
-          {tracks.map((t) => (
-            <track key={t.lang} kind="subtitles" src={t.url} srcLang={t.lang} label={t.label} />
+          {tracks.filter((t) => local[t.lang]).map((t) => (
+            <track key={t.lang} kind="subtitles" src={local[t.lang]} srcLang={t.lang} label={t.label} />
           ))}
         </video>
       </div>
@@ -194,7 +231,7 @@ export function Player({
             <div className="max-h-64 overflow-y-auto rounded-md border border-border bg-background p-1">
               <button
                 type="button"
-                onClick={() => { setSubtitle("off"); setSubOpen(false); }}
+                onClick={() => chooseSubtitle("off")}
                 className={`block w-40 rounded px-2 py-1 text-left text-xs ${subtitle === "off" ? "text-primary" : "text-foreground"}`}
               >
                 Off
@@ -203,7 +240,7 @@ export function Player({
                 <button
                   key={t.lang}
                   type="button"
-                  onClick={() => { setSubtitle(t.lang); setSubOpen(false); }}
+                  onClick={() => chooseSubtitle(t.lang)}
                   className={`block w-40 rounded px-2 py-1 text-left text-xs ${subtitle === t.lang ? "text-primary" : "text-foreground"}`}
                 >
                   {t.label}

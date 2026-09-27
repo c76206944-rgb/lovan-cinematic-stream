@@ -52,8 +52,8 @@ function ForYouPage() {
       const result = await recommend({ data: { query: text } });
       setIntro(result.intro);
       setPicks(result.picks);
-    } catch {
-      setError("The suggestions could not be loaded. Please try again in a moment.");
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "The suggestions could not be loaded. Please try again in a moment.");
     } finally {
       setLoading(false);
     }
