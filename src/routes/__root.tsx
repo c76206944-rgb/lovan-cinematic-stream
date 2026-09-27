@@ -205,7 +205,7 @@ function RootComponent() {
       void navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => void r.unregister()));
       return;
     }
-    const url = "/sw.js?push=1";
+    const url = "/sw.js";
     void navigator.serviceWorker.register(url).catch(() => {});
   }, []);
 

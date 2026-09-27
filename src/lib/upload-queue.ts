@@ -558,7 +558,10 @@ if (typeof window !== "undefined") {
   void db().then((d) => {
     const r = d.transaction("jobs", "readonly").objectStore("jobs").getAll();
     r.onsuccess = () => {
-      const saved = (r.result as Job[]).filter((s) => !jobs.some((j) => j.id === s.id));
+      const all = (r.result as Job[]).filter((s) => !jobs.some((j) => j.id === s.id));
+      // Finished uploads are cleared on return so they never show as activity again.
+      all.filter((s) => s.state === "done" || Boolean(s.titleId)).forEach((s) => void unpersist(s.id));
+      const saved = all.filter((s) => s.state !== "done" && !s.titleId);
       if (!saved.length) return;
       for (const s of saved) {
         if (s.state === "uploading" || s.state === "saving") {

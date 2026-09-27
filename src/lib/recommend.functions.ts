@@ -61,7 +61,15 @@ export const recommendTitles = createServerFn({ method: "POST" })
       },
     });
 
-    const output = await result.output;
+    let output: z.infer<typeof Result>;
+    try {
+      output = await result.output;
+    } catch (error) {
+      const text = String((error as { message?: string })?.message ?? error);
+      if (/402|credit/i.test(text)) throw new Error("Suggestions are paused right now. Please try again later.");
+      if (/429/.test(text)) throw new Error("Too many requests. Please wait a minute and try again.");
+      throw new Error("The suggestions could not be loaded. Please try again in a moment.");
+    }
     const valid = new Set(titles.map((t) => t.id));
     return {
       intro: output.intro,
