@@ -16,7 +16,7 @@ import { Footer } from "@/components/site/Footer";
 import { UploadDock } from "@/components/site/UploadDock";
 import { Toaster } from "@/components/ui/sonner";
 import { loadMultitag, setStaffMode, onAdStateChange } from "@/lib/ads";
-import { useAccount } from "@/lib/use-account";
+import { AccountProvider, useAccount } from "@/lib/use-account";
 
 
 function NotFoundComponent() {
@@ -188,8 +188,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+function AppFrame() {
   const account = useAccount();
 
   useEffect(() => {
@@ -221,18 +220,28 @@ function RootComponent() {
   }, [account.ready]);
 
   return (
+    <div className="flex min-h-dvh flex-col overflow-x-clip">
+      <Header />
+      <main className="flex-1">
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </main>
+      <Footer />
+      <MobileNav />
+      <UploadDock />
+      <Toaster position="top-center" />
+    </div>
+  );
+}
+
+function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
+
+  return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-dvh flex-col overflow-x-clip">
-        <Header />
-        <main className="flex-1">
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-        </main>
-        <Footer />
-        <MobileNav />
-        <UploadDock />
-        <Toaster position="top-center" />
-      </div>
+      <AccountProvider>
+        <AppFrame />
+      </AccountProvider>
     </QueryClientProvider>
   );
 }

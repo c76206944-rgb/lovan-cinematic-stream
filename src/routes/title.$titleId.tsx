@@ -134,12 +134,13 @@ function TitleDetails() {
       setPlayMsg(e instanceof Error ? e.message : "Could not start playback.");
     }
   };
+  const progressUserId = account.userId;
 
   return (
     <div className="pb-16">
       {videoUrl ? (
         <section className="bg-background">
-          <Player src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} startAt={startAt} onProgress={account.userId ? (p, d) => void saveProgress(account.userId!, title.id, p, d) : undefined} />
+          <Player src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} startAt={startAt} onProgress={progressUserId ? (p, d) => void saveProgress(progressUserId, title.id, p, d) : undefined} />
         </section>
       ) : (
       <section className="relative">
