@@ -183,20 +183,55 @@ export const translateSubtitleTrack = createServerFn({ method: "POST" })
 export const importPosterFromUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ url: z.string().url() }).parse(input))
-  .handler(async ({ data, context }): Promise<{ path: string }> => {
+  .handler(async ({ data, context }): Promise<{ path: string; width: number; height: number }> => {
     await requireStaff(context);
-    const response = await fetch(data.url);
-    if (!response.ok) throw new Error("That picture link could not be opened.");
-    const type = response.headers.get("content-type") ?? "image/jpeg";
-    if (!type.startsWith("image/")) throw new Error("That link is not a picture.");
-    const bytes = await response.arrayBuffer();
-    if (bytes.byteLength > 12_000_000) throw new Error("That picture is too large.");
-    const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+    const { upgradePosterUrl } = await import("@/lib/poster-source");
+    const { readImageSize } = await import("@/lib/image-size");
+
+    let best: { bytes: ArrayBuffer; type: string; width: number; height: number } | null = null;
+    let lastError = "That picture link could not be opened.";
+
+    for (const candidate of upgradePosterUrl(data.url)) {
+      try {
+        const response = await fetch(candidate);
+        if (!response.ok) continue;
+        const type = response.headers.get("content-type") ?? "image/jpeg";
+        if (!type.startsWith("image/")) {
+          lastError = "That link is not a picture.";
+          continue;
+        }
+        const bytes = await response.arrayBuffer();
+        if (bytes.byteLength > 20_000_000) {
+          lastError = "That picture is too large.";
+          continue;
+        }
+        const size = readImageSize(new Uint8Array(bytes.slice(0, 64_000)));
+        const width = size?.width ?? 0;
+        const height = size?.height ?? 0;
+        if (!best || width * height > best.width * best.height) {
+          best = { bytes, type, width, height };
+        }
+        // A good sized poster is enough, no need to try the rest.
+        if (width >= 1000 && height >= 1400) break;
+      } catch {
+        continue;
+      }
+    }
+
+    if (!best) throw new Error(lastError);
+    if (best.width && best.height && (best.width < 400 || best.height < 600)) {
+      throw new Error(
+        `That picture is only ${best.width} by ${best.height} and too small for a poster. Look for a larger one.`,
+      );
+    }
+
+    const ext = best.type.includes("png") ? "png" : best.type.includes("webp") ? "webp" : "jpg";
     const path = `posters/${Date.now()}-web.${ext}`;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.storage
       .from("media")
-      .upload(path, new Blob([bytes], { type }), { contentType: type, upsert: false });
+      .upload(path, new Blob([best.bytes], { type: best.type }), { contentType: best.type, upsert: false });
     if (error) throw new Error(error.message);
-    return { path };
+    return { path, width: best.width, height: best.height };
   });
+

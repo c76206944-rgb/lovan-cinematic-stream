@@ -3,7 +3,19 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { importPosterFromUrl } from "@/lib/subtitles.functions";
 
+/** Plain wording about how sharp a poster will look. */
+function describeQuality(width: number, height: number): string | null {
+  if (!width || !height) return null;
+  const ratio = width / height;
+  const shape =
+    ratio < 0.58 || ratio > 0.75 ? " The shape is not a standard poster, so parts may be cut off." : "";
+  if (width >= 1000 && height >= 1500) return `Great quality: ${width} by ${height}.${shape}`;
+  if (width >= 700 && height >= 1050) return `Good quality: ${width} by ${height}.${shape}`;
+  return `Low quality: ${width} by ${height}. It may look soft on large screens.${shape}`;
+}
+
 /** Shows the current poster and lets staff replace it with a new picture. */
+
 export function PosterField({
   posterPath,
   onChange,
@@ -18,6 +30,7 @@ export function PosterField({
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const localUrl = useRef<string | null>(null);
 
 
@@ -38,10 +51,31 @@ export function PosterField({
     };
   }, [posterPath]);
 
+  const measure = (file: File) =>
+    new Promise<{ width: number; height: number }>((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => {
+        resolve({ width: 0, height: 0 });
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    });
+
   const pick = async (file: File) => {
     setError(null);
+    setNote(null);
     setBusy(true);
     try {
+      const { width, height } = await measure(file);
+      if (width && height && (width < 400 || height < 600)) {
+        setError(`That picture is only ${width} by ${height}. Posters need at least 400 by 600.`);
+        return;
+      }
       const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `posters/${Date.now()}-${safe}`;
       const { error: uploadError } = await supabase.storage
@@ -52,12 +86,14 @@ export function PosterField({
       localUrl.current = URL.createObjectURL(file);
       setPreview(localUrl.current);
       onChange(path);
+      setNote(describeQuality(width, height));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The picture could not be uploaded.");
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="sm:col-span-2">
@@ -158,12 +194,14 @@ export function PosterField({
               disabled={busy || !webUrl.trim()}
               onClick={() => {
                 setError(null);
+                setNote(null);
                 setBusy(true);
                 void importUrl({ data: { url: webUrl.trim() } })
-                  .then(({ path }) => {
+                  .then(({ path, width, height }) => {
                     setPreview(webUrl.trim());
                     onChange(path);
                     setWebUrl("");
+                    setNote(describeQuality(width, height));
                   })
                   .catch((cause: unknown) =>
                     setError(cause instanceof Error ? cause.message : "That picture could not be brought in."),
@@ -175,7 +213,9 @@ export function PosterField({
               Bring in
             </button>
           </div>
+          {note ? <p className="mt-2 text-xs text-muted-foreground">{note}</p> : null}
           {error ? <p className="mt-2 text-xs text-primary">{error}</p> : null}
+
         </div>
 
       </div>
