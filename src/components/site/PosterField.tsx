@@ -3,7 +3,19 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { importPosterFromUrl } from "@/lib/subtitles.functions";
 
+/** Plain wording about how sharp a poster will look. */
+function describeQuality(width: number, height: number): string | null {
+  if (!width || !height) return null;
+  const ratio = width / height;
+  const shape =
+    ratio < 0.58 || ratio > 0.75 ? " The shape is not a standard poster, so parts may be cut off." : "";
+  if (width >= 1000 && height >= 1500) return `Great quality: ${width} by ${height}.${shape}`;
+  if (width >= 700 && height >= 1050) return `Good quality: ${width} by ${height}.${shape}`;
+  return `Low quality: ${width} by ${height}. It may look soft on large screens.${shape}`;
+}
+
 /** Shows the current poster and lets staff replace it with a new picture. */
+
 export function PosterField({
   posterPath,
   onChange,
