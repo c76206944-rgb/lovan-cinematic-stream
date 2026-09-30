@@ -194,12 +194,14 @@ export function PosterField({
               disabled={busy || !webUrl.trim()}
               onClick={() => {
                 setError(null);
+                setNote(null);
                 setBusy(true);
                 void importUrl({ data: { url: webUrl.trim() } })
-                  .then(({ path }) => {
+                  .then(({ path, width, height }) => {
                     setPreview(webUrl.trim());
                     onChange(path);
                     setWebUrl("");
+                    setNote(describeQuality(width, height));
                   })
                   .catch((cause: unknown) =>
                     setError(cause instanceof Error ? cause.message : "That picture could not be brought in."),
@@ -211,7 +213,9 @@ export function PosterField({
               Bring in
             </button>
           </div>
+          {note ? <p className="mt-2 text-xs text-muted-foreground">{note}</p> : null}
           {error ? <p className="mt-2 text-xs text-primary">{error}</p> : null}
+
         </div>
 
       </div>
