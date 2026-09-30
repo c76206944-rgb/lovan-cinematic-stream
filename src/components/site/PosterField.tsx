@@ -18,6 +18,7 @@ export function PosterField({
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const localUrl = useRef<string | null>(null);
 
 
@@ -38,10 +39,31 @@ export function PosterField({
     };
   }, [posterPath]);
 
+  const measure = (file: File) =>
+    new Promise<{ width: number; height: number }>((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => {
+        resolve({ width: 0, height: 0 });
+        URL.revokeObjectURL(url);
+      };
+      img.src = url;
+    });
+
   const pick = async (file: File) => {
     setError(null);
+    setNote(null);
     setBusy(true);
     try {
+      const { width, height } = await measure(file);
+      if (width && height && (width < 400 || height < 600)) {
+        setError(`That picture is only ${width} by ${height}. Posters need at least 400 by 600.`);
+        return;
+      }
       const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `posters/${Date.now()}-${safe}`;
       const { error: uploadError } = await supabase.storage
@@ -52,12 +74,14 @@ export function PosterField({
       localUrl.current = URL.createObjectURL(file);
       setPreview(localUrl.current);
       onChange(path);
+      setNote(describeQuality(width, height));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The picture could not be uploaded.");
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="sm:col-span-2">
