@@ -19,6 +19,8 @@ export function TitleCard({ title, progress, className }: Props) {
           src={title.image}
           alt={title.name}
           loading="lazy"
+          decoding="async"
+
           width={1000}
           height={1500}
           className="aspect-[2/3] w-full object-cover object-center opacity-90 transition-opacity duration-300 group-hover:opacity-100"
