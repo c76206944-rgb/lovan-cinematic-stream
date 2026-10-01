@@ -49,8 +49,8 @@ function Landing() {
   return (
     <div>
       <section className="relative">
-        <img src={featured?.image ?? still01} alt="" width={1536} height={864} className="h-[70vh] min-h-[420px] w-full object-cover opacity-55" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/10" />
+        <img src={featured?.image ?? still01} alt="" width={1536} height={864} className="h-[70vh] min-h-[420px] w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
         <div className="absolute inset-0 flex items-end">
           <div className="mx-auto w-full max-w-[1600px] px-4 pb-12 sm:px-6">
             <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-foreground sm:text-6xl">
