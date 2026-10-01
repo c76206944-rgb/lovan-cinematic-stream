@@ -57,6 +57,8 @@ const TitleInput = z
     poster_url: z.string().regex(/^posters\/[A-Za-z0-9._-]+$/).nullable().optional(),
     offline_allowed: z.boolean().optional(),
     upload_key: z.string().uuid().optional(),
+    // Size of the file on the uploader's computer. When given, the stored video must match it.
+    expected_bytes: z.number().int().positive().optional(),
   });
 
 async function objectInfo(context: Ctx, path: string) {
@@ -66,6 +68,14 @@ async function objectInfo(context: Ctx, path: string) {
     size: Number(data.size ?? data.metadata?.size ?? 0),
     mimetype: String(data.contentType ?? data.metadata?.mimetype ?? ""),
   };
+}
+
+function mb(n: number) {
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function sizeMismatchMessage(stored: number, expected: number) {
+  return `The stored video is ${mb(stored)} but the original file is ${mb(expected)} (${stored} of ${expected} bytes). The upload did not finish, so the film would stop part way. Upload it again.`;
 }
 
 async function posterHead(context: Ctx, path: string) {
@@ -122,6 +132,14 @@ export const saveTitle = createServerFn({ method: "POST" })
     if (!data.language) warnings.push("No language");
     if (!data.poster_url) warnings.push("No poster");
     if (data.published && !data.video_path) { data.published = false; warnings.push("Saved as draft: no video"); }
+    // A video the uploader measured must be stored in full. This check is strict.
+    if (data.video_path && data.expected_bytes) {
+      const stored = await objectInfo(context, data.video_path).catch(() => null);
+      if (!stored) throw new Error("The uploaded video could not be found in storage. Upload it again.");
+      if (stored.size !== data.expected_bytes) {
+        throw new Error(sizeMismatchMessage(stored.size, data.expected_bytes));
+      }
+    }
     // Lenient checks: record what we can, never refuse an upload.
     try {
       const [videoInfo, posterInfo, posterBytes] = await Promise.all([
@@ -140,7 +158,7 @@ export const saveTitle = createServerFn({ method: "POST" })
       /* ignore */
     }
 
-    const { id, ...fields } = data;
+    const { id, expected_bytes: _expected, ...fields } = data;
     const row: Record<string, any> = { ...fields, ...extra, updated_at: new Date().toISOString() };
     if (row["video_path"] === undefined) delete row["video_path"];
     if (row["poster_url"] === undefined) delete row["poster_url"];
@@ -323,4 +341,40 @@ export const createUploadUrl = createServerFn({ method: "POST" })
       .createSignedUploadUrl(data.path, { upsert: true });
     if (error || !signed) throw new Error(error?.message ?? "Could not prepare the upload.");
     return { signedUrl: signed.signedUrl, path: signed.path };
+  });
+
+/**
+ * Compares the stored video with the size of the file on the uploader's computer.
+ * On a mismatch the incomplete object is removed so it can never be published.
+ */
+export const verifyUploadedSize = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        path: z.string().regex(/^videos\/[A-Za-z0-9._-]+$/, "Invalid file path."),
+        expectedBytes: z.number().int().positive(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Storage can take a moment to list a finished upload, so look a few times before giving up.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let info: any = null;
+    for (let attempt = 0; attempt < 4 && !info; attempt += 1) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+      const res = await supabaseAdmin.storage.from("media").info(data.path);
+      if (!res.error && res.data) info = res.data;
+    }
+    if (!info) {
+      throw new Error("The uploaded video could not be found in storage. Upload it again.");
+    }
+    const stored = Number(info.size ?? info.metadata?.size ?? 0);
+    if (stored !== data.expectedBytes) {
+      await supabaseAdmin.storage.from("media").remove([data.path]);
+      throw new Error(sizeMismatchMessage(stored, data.expectedBytes));
+    }
+    return { ok: true as const, storedBytes: stored };
   });
