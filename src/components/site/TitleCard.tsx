@@ -23,7 +23,7 @@ export function TitleCard({ title, progress, className }: Props) {
 
           width={1000}
           height={1500}
-          className="aspect-[2/3] w-full object-cover object-center opacity-90 transition-opacity duration-300 group-hover:opacity-100"
+          className="aspect-[2/3] w-full object-cover object-center"
         />
 
         {typeof progress === "number" ? (

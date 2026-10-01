@@ -149,7 +149,7 @@ function TitleDetails() {
           alt=""
           width={1536}
           height={864}
-          className="h-[58vh] min-h-[340px] w-full object-cover object-center opacity-50"
+          className="h-[58vh] min-h-[340px] w-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
         <Link
