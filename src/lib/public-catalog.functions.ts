@@ -21,6 +21,21 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
       return [];
     }
     const rows = data ?? [];
+    // Episodes without their own poster use the poster of another episode in the same series.
+    const seriesPoster = new Map<string, { path: string; rank: number }>();
+    for (const r of rows) {
+      if (r.kind !== "series" || !r.poster_url) continue;
+      const key = (r.series_name || r.name).toLowerCase();
+      const rank = (r.season ?? 0) * 10000 + (r.episode ?? 0);
+      const cur = seriesPoster.get(key);
+      if (!cur || rank < cur.rank) seriesPoster.set(key, { path: r.poster_url, rank });
+    }
+    for (const r of rows) {
+      if (r.kind === "series" && !r.poster_url) {
+        const p = seriesPoster.get((r.series_name || r.name).toLowerCase());
+        if (p) r.poster_url = p.path;
+      }
+    }
     const paths = rows.map((r) => r.poster_url).filter((p): p is string => Boolean(p));
     const signed = new Map<string, string>();
     if (paths.length) {
