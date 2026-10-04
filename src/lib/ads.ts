@@ -82,16 +82,44 @@ export function onAdStateChange(fn: () => void): () => void {
 /* ------------------------------------------------------------------ */
 
 let staffMode = false;
+const STAFF_DEVICE_KEY = "lovan-staff-device";
+
+/** True when this device has ever been signed in as studio staff. */
+function staffDevice(): boolean {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem(STAFF_DEVICE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Remove every injected advert tag from the page. */
+function removeAdScripts(): void {
+  if (typeof document === "undefined") return;
+  document.querySelectorAll("script[data-lovan-zone]").forEach((s) => s.remove());
+}
 
 /** Studio staff never see adverts. Called once the account is known. */
 export function setStaffMode(value: boolean): void {
+  if (value) {
+    try {
+      localStorage.setItem(STAFF_DEVICE_KEY, "1");
+    } catch {
+      /* storage unavailable */
+    }
+  }
   if (staffMode === value) return;
   staffMode = value;
+  if (value) {
+    removeAdScripts();
+    // Advert tags that already ran keep click handlers in memory; a reload clears them.
+    if (multitagLoaded && typeof location !== "undefined") location.reload();
+  }
   listeners.forEach((fn) => fn());
 }
 
 export function isStaffMode(): boolean {
-  return staffMode;
+  return staffMode || staffDevice();
 }
 
 /* ------------------------------------------------------------------ */
@@ -144,7 +172,7 @@ export function fillAdCount(): void {
 
 /** True when adverts may run right now: not staff and under the daily cap. */
 export function adsAllowed(): boolean {
-  if (staffMode) return false;
+  if (isStaffMode()) return false;
   return adsSeenToday() < DAILY_AD_LIMIT;
 }
 
