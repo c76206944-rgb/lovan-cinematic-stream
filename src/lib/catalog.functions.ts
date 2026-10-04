@@ -57,6 +57,8 @@ const TitleInput = z
     poster_url: z.string().regex(/^posters\/[A-Za-z0-9._-]+$/).nullable().optional(),
     offline_allowed: z.boolean().optional(),
     upload_key: z.string().uuid().optional(),
+    // Copy this poster to other episodes of the same series that have no poster yet.
+    apply_series_poster: z.boolean().optional(),
     // Size of the file on the uploader's computer. When given, the stored video must match it.
     expected_bytes: z.number().int().positive().optional(),
   });
@@ -158,7 +160,19 @@ export const saveTitle = createServerFn({ method: "POST" })
       /* ignore */
     }
 
-    const { id, expected_bytes: _expected, ...fields } = data;
+    const { id, expected_bytes: _expected, apply_series_poster: applySeries, ...fields } = data;
+    const fillSeries = async (selfId: string) => {
+      if (!applySeries || data.kind !== "series" || !data.poster_url) return;
+      const series = (data.series_name || data.name).trim();
+      if (!series) return;
+      await context.supabase
+        .from("catalog_titles")
+        .update({ poster_url: data.poster_url } as never)
+        .eq("kind", "series")
+        .ilike("series_name", series)
+        .neq("id", selfId)
+        .or("poster_url.is.null,poster_url.eq.");
+    };
     const row: Record<string, any> = { ...fields, ...extra, updated_at: new Date().toISOString() };
     if (row["video_path"] === undefined) delete row["video_path"];
     if (row["poster_url"] === undefined) delete row["poster_url"];
@@ -181,6 +195,7 @@ export const saveTitle = createServerFn({ method: "POST" })
           data.poster_url && before.poster_url !== data.poster_url ? before.poster_url : null,
         ]);
       }
+      await fillSeries(id).catch(() => undefined);
       return { id, duplicate: false, existing: null, warnings };
     }
     const { data: inserted, error } = await context.supabase

@@ -80,6 +80,7 @@ function CatalogPage() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
+  const [applySeriesPoster, setApplySeriesPoster] = useState(true);
 
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -175,6 +176,7 @@ function CatalogPage() {
             ad_notes: e.ad_notes,
             poster_url: e.poster_url,
             video_path: e.video_path,
+            apply_series_poster: e.kind === "series" && applySeriesPoster,
           },
         }).then(() => closeEdit()),
       "Changes saved.",
@@ -463,6 +465,12 @@ function CatalogPage() {
                 <L label="Maturity"><input className={inputClass} value={editing.maturity} onChange={(e) => patch({ maturity: e.target.value })} /></L>
                 <L label="Mid roll cue points" wide><input className={inputClass} value={editing.ad_cues} onChange={(e) => patch({ ad_cues: e.target.value })} /></L>
                 <PosterField posterPath={editing.poster_url} onChange={(path) => patch({ poster_url: path })} titleName={editing.series_name || editing.name} />
+                {editing.kind === "series" ? (
+                  <label className="flex items-center gap-3 text-sm text-foreground sm:col-span-2">
+                    <input type="checkbox" className="h-4 w-4 accent-[var(--color-primary)]" checked={applySeriesPoster} onChange={(ev) => setApplySeriesPoster(ev.target.checked)} />
+                    Use this poster for other episodes that have no poster of their own
+                  </label>
+                ) : null}
                 <SubtitleManager titleId={editing.id} />
 
               </div>

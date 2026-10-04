@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Download, Play, Plus, Share2 } from "lucide-react";
-import { collapseSeries, type Title } from "@/data/titles";
+import { collapseSeries, fallbackImage, type Title } from "@/data/titles";
 import { TitleCard } from "@/components/site/TitleCard";
 import { Comments } from "@/components/site/Comments";
 import { AdSlot } from "@/components/site/AdSlot";
@@ -119,6 +119,7 @@ function TitleDetails() {
     ? titles.filter((t) => t.kind === "series" && t.seriesName.toLowerCase() === title.seriesName.toLowerCase())
         .sort((a, b) => (a.season ?? 0) - (b.season ?? 0) || (a.episode ?? 0) - (b.episode ?? 0))
     : [];
+  const seriesImage = title.image || episodes.find((e) => e.image)?.image || "";
   const related = collapseSeries(titles)
     .filter((t) => t.id !== title.id && t.seriesName !== title.seriesName && t.genres.some((g) => title.genres.includes(g)))
     .slice(0, 8);
@@ -235,7 +236,18 @@ function TitleDetails() {
                     params={{ titleId: ep.id }}
                     className={`flex items-center justify-between gap-3 px-4 py-3 text-sm ${ep.id === title.id ? "text-primary" : "text-foreground hover:bg-surface"}`}
                   >
-                    <span className="min-w-0 truncate">S{ep.season ?? 1} E{ep.episode ?? 1}{ep.episodeTitle && ep.episodeTitle !== ep.name ? ` · ${ep.episodeTitle}` : ""}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <img
+                        src={ep.image || seriesImage || fallbackImage(ep.id)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        width={40}
+                        height={60}
+                        className="h-15 w-10 shrink-0 rounded-sm border border-border object-cover"
+                      />
+                      <span className="min-w-0 truncate">S{ep.season ?? 1} E{ep.episode ?? 1}{ep.episodeTitle && ep.episodeTitle !== ep.name ? ` · ${ep.episodeTitle}` : ""}</span>
+                    </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{ep.runtime}</span>
                   </Link>
                 </li>
