@@ -38,6 +38,7 @@ import { Route as AuthenticatedAdminBulkRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminCatalogRouteImport } from './routes/_authenticated/admin_.catalog'
 import { Route as AuthenticatedAdminDiagnosticsRouteImport } from './routes/_authenticated/admin_.diagnostics'
 import { Route as AuthenticatedAdminListsRouteImport } from './routes/_authenticated/admin_.lists'
+import { Route as AuthenticatedAdminRequestsRouteImport } from './routes/_authenticated/admin_.requests'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -186,6 +187,12 @@ const AuthenticatedAdminListsRoute = AuthenticatedAdminListsRouteImport.update({
   path: '/admin/lists',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRequestsRoute =
+  AuthenticatedAdminRequestsRouteImport.update({
+    id: '/admin_/requests',
+    path: '/admin/requests',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
   '/admin/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
   '/admin/lists': typeof AuthenticatedAdminListsRoute
+  '/admin/requests': typeof AuthenticatedAdminRequestsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -246,6 +254,7 @@ export interface FileRoutesByTo {
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
   '/admin/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
   '/admin/lists': typeof AuthenticatedAdminListsRoute
+  '/admin/requests': typeof AuthenticatedAdminRequestsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -278,6 +287,7 @@ export interface FileRoutesById {
   '/_authenticated/admin_/catalog': typeof AuthenticatedAdminCatalogRoute
   '/_authenticated/admin_/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
   '/_authenticated/admin_/lists': typeof AuthenticatedAdminListsRoute
+  '/_authenticated/admin_/requests': typeof AuthenticatedAdminRequestsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin/catalog'
     | '/admin/diagnostics'
     | '/admin/lists'
+    | '/admin/requests'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/admin/catalog'
     | '/admin/diagnostics'
     | '/admin/lists'
+    | '/admin/requests'
   id:
     | '__root__'
     | '/'
@@ -371,6 +383,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin_/catalog'
     | '/_authenticated/admin_/diagnostics'
     | '/_authenticated/admin_/lists'
+    | '/_authenticated/admin_/requests'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -604,6 +617,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminListsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin_/requests': {
+      id: '/_authenticated/admin_/requests'
+      path: '/admin/requests'
+      fullPath: '/admin/requests'
+      preLoaderRoute: typeof AuthenticatedAdminRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -614,6 +634,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminCatalogRoute: typeof AuthenticatedAdminCatalogRoute
   AuthenticatedAdminDiagnosticsRoute: typeof AuthenticatedAdminDiagnosticsRoute
   AuthenticatedAdminListsRoute: typeof AuthenticatedAdminListsRoute
+  AuthenticatedAdminRequestsRoute: typeof AuthenticatedAdminRequestsRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -623,6 +644,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminCatalogRoute: AuthenticatedAdminCatalogRoute,
   AuthenticatedAdminDiagnosticsRoute: AuthenticatedAdminDiagnosticsRoute,
   AuthenticatedAdminListsRoute: AuthenticatedAdminListsRoute,
+  AuthenticatedAdminRequestsRoute: AuthenticatedAdminRequestsRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

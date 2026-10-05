@@ -5,6 +5,7 @@ const tabs = [
   { to: "/admin/bulk", label: "Upload many" },
   { to: "/admin/catalog", label: "Catalogue" },
   { to: "/admin/lists", label: "Lists" },
+  { to: "/admin/requests", label: "Requests" },
   { to: "/admin/analytics", label: "Analytics" },
   { to: "/admin/diagnostics", label: "Ad diagnostics" },
 ] as const;
