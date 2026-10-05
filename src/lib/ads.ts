@@ -170,9 +170,24 @@ export function fillAdCount(): void {
   listeners.forEach((fn) => fn());
 }
 
-/** True when adverts may run right now: not staff and under the daily cap. */
+/** True on the sign-in page, where adverts never run. */
+export function onAuthPage(): boolean {
+  return typeof location !== "undefined" && location.pathname.startsWith("/auth");
+}
+
+/**
+ * Called whenever the sign-in page opens. Removes advert tags, and reloads once
+ * if tags already ran, because their click handlers stay in memory otherwise.
+ */
+export function clearAdsForAuth(): void {
+  removeAdScripts();
+  if (multitagLoaded && typeof location !== "undefined") location.reload();
+}
+
+/** True when adverts may run right now: not staff, not signing in, under the daily cap. */
 export function adsAllowed(): boolean {
   if (isStaffMode()) return false;
+  if (onAuthPage()) return false;
   return adsSeenToday() < DAILY_AD_LIMIT;
 }
 
