@@ -197,12 +197,28 @@ function TitleDetails() {
                 {saved ? "In My List" : "Add to My List"}
               </button>
               <DownloadButton title={title} />
-              <button
-                type="button"
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Watch ${title.name}${title.year ? ` (${title.year})` : ""} on LOVAN: https://www.lovan.site/title/${title.id}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface"
               >
                 <Share2 className="size-4" strokeWidth={1.5} />
-                Share
+                Share on WhatsApp
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(`https://www.lovan.site/title/${title.id}`);
+                    setPlayMsg("Link copied.");
+                  } catch {
+                    setPlayMsg("Could not copy the link.");
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface"
+              >
+                Copy link
               </button>
             </div>
 
