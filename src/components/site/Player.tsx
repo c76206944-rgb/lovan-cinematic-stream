@@ -34,6 +34,7 @@ export function Player({
   const [subOpen, setSubOpen] = useState(false);
   const [subtitle, setSubtitle] = useState<string>("off");
   const [noPicture, setNoPicture] = useState(false);
+  const [fill, setFill] = useState(false);
   const report = (v: HTMLVideoElement, force = false) => {
     if (!onProgress) return;
     const now = Date.now();
@@ -152,7 +153,7 @@ export function Player({
       onTouchStart={(e) => e.stopPropagation()}
       className="relative isolate z-40 bg-black"
     >
-      <div className={full ? "" : "mx-auto aspect-video w-full max-w-[1600px]"}>
+      <div className={full ? "flex h-dvh w-full items-center justify-center bg-black" : "mx-auto aspect-video w-full max-w-[1600px]"}>
         <video
           ref={videoRef}
           src={src}
@@ -179,7 +180,7 @@ export function Player({
               if (v.videoWidth === 0 || frames === 0) setNoPicture(true);
             }, 2500);
           }}
-          className={`h-full w-full bg-black object-contain ${full ? "h-dvh" : ""}`}
+          className={`h-full w-full bg-black ${fill ? "object-cover" : "object-contain"}`}
         >
           {tracks.filter((t) => local[t.lang]).map((t) => (
             <track key={t.lang} kind="subtitles" src={local[t.lang]} srcLang={t.lang} label={t.label} />
@@ -208,6 +209,9 @@ export function Player({
             <button type="button" onClick={() => { setSpeedOpen((v) => !v); setSubOpen(false); }} className={chip}>
               <Gauge className="size-4" strokeWidth={1.5} />
               {speed}x
+            </button>
+            <button type="button" onClick={() => setFill((v) => !v)} aria-pressed={fill} className={chip}>
+              {fill ? "Fill" : "Fit"}
             </button>
             <button type="button" onClick={() => void goFullscreen()} aria-label="Full screen" className={chip}>
               <Maximize2 className="size-4" strokeWidth={1.5} />
