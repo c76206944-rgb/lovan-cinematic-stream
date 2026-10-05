@@ -16,7 +16,8 @@ import { Header, MobileNav } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { UploadDock } from "@/components/site/UploadDock";
 import { Toaster } from "@/components/ui/sonner";
-import { loadMultitag, setStaffMode, onAdStateChange } from "@/lib/ads";
+import { loadMultitag, setStaffMode, onAdStateChange, clearAdsForAuth } from "@/lib/ads";
+import { useRouterState } from "@tanstack/react-router";
 import { AccountProvider, useAccount } from "@/lib/use-account";
 
 
@@ -191,6 +192,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function AppFrame() {
   const account = useAccount();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     if (!account.ready) return;
@@ -210,6 +212,10 @@ function AppFrame() {
   }, []);
 
   useEffect(() => {
+    if (pathname.startsWith("/auth")) {
+      clearAdsForAuth();
+      return;
+    }
     const inFrame = window.self !== window.top;
     if (inFrame) return;
     if (!account.ready) return;
@@ -218,7 +224,7 @@ function AppFrame() {
     };
     tick();
     return onAdStateChange(tick);
-  }, [account.ready]);
+  }, [account.ready, pathname]);
 
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
