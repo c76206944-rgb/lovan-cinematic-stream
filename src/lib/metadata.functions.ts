@@ -101,49 +101,63 @@ export const describeTitle = createServerFn({ method: "POST" })
     const { data: staff } = await context.supabase.rpc("is_staff", { _user_id: context.userId });
     if (!staff) throw new Error("Forbidden");
 
-    const { pickModel, explainAiError } = await import("@/lib/ai-model.server");
-    const ai = pickModel("medium");
+    const { pickModel, explainAiError, isOverloadError, GEMINI_FALLBACKS } = await import("@/lib/ai-model.server");
     void createOpenAI;
 
-    // streamText swallows provider errors into the stream, so capture the real one here.
-    let apiError: unknown;
+    const system = [
+      "You are a careful film archivist preparing catalogue metadata for a streaming service.",
+      "Accuracy matters more than completeness. Never invent people, dates or facts.",
+      "Decide whether you genuinely recognize this exact title. Set recognized true only if sure, and put the exact work you matched (name and year) in matched_title, else empty.",
+      "For every field return value, source and confidence.",
+      "source is notes when the value is written in the uploader notes, known_title when it comes from your knowledge of the recognized work, inferred when you reasoned it (like a synopsis or genre from a description), none when empty.",
+      "If not recognized, leave cast, director and year empty unless they are in the notes.",
+      "Use the uploader notes over your memory when they conflict.",
+      `Write the synopsis, country, language, runtime and maturity text in ${data.outputLanguage}. Keep personal names and title names in their established form. Keep genre labels in the supplied English list because the catalogue uses controlled labels.`,
+      `genres: one to three, comma separated, only from: ${GENRES.join(", ")}.`,
+      "cast: up to six names, comma separated, billing order.",
+      "synopsis: two or three plain sentences, no ending spoilers, no dashes, no emojis, no marketing phrases.",
+      "runtime: 1h 48m for films or 8 episodes for series. year: four digits.",
+      "confidence high only when certain.",
+    ].join(" ");
+    const prompt = `Title name: ${data.name}\nType: ${data.kind}\nOutput language: ${data.outputLanguage}\nNotes from the uploader:\n${data.notes || "(none)"}`;
 
-    const result = streamText({
-      model: ai.model,
-      onError: ({ error }) => {
-        apiError = error;
-        console.error("describeTitle AI error", error);
-      },
-      output: Output.object({ schema: Schema }),
-      system: [
-        "You are a careful film archivist preparing catalogue metadata for a streaming service.",
-        "Accuracy matters more than completeness. Never invent people, dates or facts.",
-        "Decide whether you genuinely recognize this exact title. Set recognized true only if sure, and put the exact work you matched (name and year) in matched_title, else empty.",
-        "For every field return value, source and confidence.",
-        "source is notes when the value is written in the uploader notes, known_title when it comes from your knowledge of the recognized work, inferred when you reasoned it (like a synopsis or genre from a description), none when empty.",
-        "If not recognized, leave cast, director and year empty unless they are in the notes.",
-        "Use the uploader notes over your memory when they conflict.",
-        `Write the synopsis, country, language, runtime and maturity text in ${data.outputLanguage}. Keep personal names and title names in their established form. Keep genre labels in the supplied English list because the catalogue uses controlled labels.`,
-        `genres: one to three, comma separated, only from: ${GENRES.join(", ")}.`,
-        "cast: up to six names, comma separated, billing order.",
-        "synopsis: two or three plain sentences, no ending spoilers, no dashes, no emojis, no marketing phrases.",
-        "runtime: 1h 48m for films or 8 episodes for series. year: four digits.",
-        "confidence high only when certain.",
-      ].join(" "),
-      prompt: `Title name: ${data.name}\nType: ${data.kind}\nOutput language: ${data.outputLanguage}\nNotes from the uploader:\n${data.notes || "(none)"}`,
-      providerOptions: ai.providerOptions,
-    });
+    // Try the configured Gemini model first, then fall back to others if Google is overloaded.
+    const first = pickModel("medium");
+    const attempts = first.provider === "gemini"
+      ? [first, ...GEMINI_FALLBACKS.filter((m) => m !== first.modelName).map((m) => pickModel("medium", m))]
+      : [first];
 
-    let out: z.infer<typeof Schema>;
-    try {
-      out = await result.output;
-    } catch (error) {
-      if (apiError || !NoObjectGeneratedError.isInstance(error)) {
-        throw new Error(explainAiError(apiError ?? error, ai.provider));
+    let out: z.infer<typeof Schema> | undefined;
+    let lastFailure = "";
+    for (const ai of attempts) {
+      let apiError: unknown;
+      try {
+        const result = streamText({
+          model: ai.model,
+          maxRetries: 1,
+          onError: ({ error }) => {
+            apiError = error;
+            console.error("describeTitle AI error", ai.modelName, error);
+          },
+          output: Output.object({ schema: Schema }),
+          system,
+          prompt,
+          providerOptions: ai.providerOptions,
+        });
+        out = await result.output;
+        break;
+      } catch (error) {
+        const cause = apiError ?? error;
+        if (!apiError && NoObjectGeneratedError.isInstance(error)) {
+          const raw = (error.text ?? "").slice(0, 200);
+          lastFailure = `AI [${ai.provider} ${ai.modelName}] replied in an unreadable format. ${raw ? `Reply started: ${raw}` : "The reply was empty."}`;
+          continue;
+        }
+        lastFailure = `${explainAiError(cause, ai.provider)} (model: ${ai.modelName})`;
+        if (!isOverloadError(cause)) throw new Error(lastFailure);
       }
-      const raw = (error.text ?? "").slice(0, 200);
-      throw new Error(`AI [${ai.provider}] replied in an unreadable format. ${raw ? `Reply started: ${raw}` : "The reply was empty."}`);
     }
+    if (!out) throw new Error(lastFailure || "The AI did not return a result.");
     return {
       recognized: out.recognized,
       matchedTitle: out.matched_title,
