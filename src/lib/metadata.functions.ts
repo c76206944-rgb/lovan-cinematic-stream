@@ -101,9 +101,6 @@ export const describeTitle = createServerFn({ method: "POST" })
     const { data: staff } = await context.supabase.rpc("is_staff", { _user_id: context.userId });
     if (!staff) throw new Error("Forbidden");
 
-    const key = process.env["LOVABLE_API_KEY"];
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-
     const { pickModel } = await import("@/lib/ai-model.server");
     const ai = pickModel("medium");
     void createOpenAI;
