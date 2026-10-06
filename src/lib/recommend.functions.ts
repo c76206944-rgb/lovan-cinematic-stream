@@ -38,27 +38,17 @@ export const recommendTitles = createServerFn({ method: "POST" })
       synopsis: t.synopsis,
     }));
 
-    const lovable = createOpenAI({
-      baseURL: "https://ai.gateway.lovable.dev/v1",
-      apiKey: key,
-      headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-    });
+    const { pickModel } = await import("@/lib/ai-model.server");
+    const ai = pickModel("low");
+    void createOpenAI;
 
     const result = streamText({
-      model: lovable.responses("openai/gpt-6-astra"),
+      model: ai.model,
       output: Output.object({ schema: Result }),
       system:
         "You recommend titles from the LOVAN catalogue only. Choose between one and five titles from the provided list that best match the viewer request. Use only ids from the list. Keep each reason to one short plain sentence. Write plain literal copy with no dashes and no emojis.",
       prompt: `Viewer request: ${data.query}\n\nCatalogue as JSON:\n${JSON.stringify(catalogue)}`,
-      providerOptions: {
-        openai: {
-          forceReasoning: true,
-          reasoningEffort: "low",
-          reasoningSummary: "auto",
-          store: false,
-          include: ["reasoning.encrypted_content"],
-        },
-      },
+      providerOptions: ai.providerOptions,
     });
 
     let output: z.infer<typeof Result>;
