@@ -11,7 +11,8 @@ export function pickModel(effort: Effort = "low"): { model: ReturnType<ReturnTyp
       baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
       apiKey: gemini,
     });
-    return { model: google.chat("gemini-flash-latest"), providerOptions: {} as Record<string, never> };
+    return { model: google.chat("gemini-flash-latest"), providerOptions: {} as Record<string, never> 
+           };
     
   const key = process.env["LOVABLE_API_KEY"];
   if (!key) throw new Error("No AI key is configured.");
