@@ -19,9 +19,6 @@ const Result = z.object({
 export const recommendTitles = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data }) => {
-    const key = process.env["LOVABLE_API_KEY"];
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-
     const titles = await getCatalog();
     const catalogue = titles.map((t) => ({
       id: t.id,
