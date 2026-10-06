@@ -101,12 +101,19 @@ export const describeTitle = createServerFn({ method: "POST" })
     const { data: staff } = await context.supabase.rpc("is_staff", { _user_id: context.userId });
     if (!staff) throw new Error("Forbidden");
 
-    const { pickModel } = await import("@/lib/ai-model.server");
+    const { pickModel, explainAiError } = await import("@/lib/ai-model.server");
     const ai = pickModel("medium");
     void createOpenAI;
 
+    // streamText swallows provider errors into the stream, so capture the real one here.
+    let apiError: unknown;
+
     const result = streamText({
       model: ai.model,
+      onError: ({ error }) => {
+        apiError = error;
+        console.error("describeTitle AI error", error);
+      },
       output: Output.object({ schema: Schema }),
       system: [
         "You are a careful film archivist preparing catalogue metadata for a streaming service.",
@@ -131,8 +138,11 @@ export const describeTitle = createServerFn({ method: "POST" })
     try {
       out = await result.output;
     } catch (error) {
-      if (NoObjectGeneratedError.isInstance(error)) throw new Error("The AI reply could not be read. Try again.");
-      throw error;
+      if (apiError || !NoObjectGeneratedError.isInstance(error)) {
+        throw new Error(explainAiError(apiError ?? error, ai.provider));
+      }
+      const raw = (error.text ?? "").slice(0, 200);
+      throw new Error(`AI [${ai.provider}] replied in an unreadable format. ${raw ? `Reply started: ${raw}` : "The reply was empty."}`);
     }
     return {
       recognized: out.recognized,
