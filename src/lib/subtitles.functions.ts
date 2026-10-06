@@ -126,9 +126,6 @@ export const translateSubtitleTrack = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => TranslateInput.parse(input))
   .handler(async ({ data, context }): Promise<StoredTrack[]> => {
     await requireStaff(context);
-    const key = process.env["LOVABLE_API_KEY"];
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("catalog_titles")
@@ -230,4 +227,3 @@ export const importPosterFromUrl = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { path, width: best.width, height: best.height };
   });
-
