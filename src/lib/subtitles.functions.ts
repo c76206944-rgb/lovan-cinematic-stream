@@ -71,7 +71,11 @@ export const saveSubtitleTrack = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<StoredTrack[]> => {
     await requireStaff(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const body = data.vtt.trim().startsWith("WEBVTT") ? data.vtt : `WEBVTT\n\n${data.vtt}`;
+    const raw = data.vtt.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim();
+    // SRT files use commas in timestamps; WebVTT needs dots.
+    const body = raw.startsWith("WEBVTT")
+      ? raw
+      : `WEBVTT\n\n${raw.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2")}`;
     const path = `subtitles/${data.id}-${data.lang}.vtt`;
     const { error } = await supabaseAdmin.storage
       .from("media")
