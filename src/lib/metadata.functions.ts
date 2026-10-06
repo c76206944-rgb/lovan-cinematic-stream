@@ -127,15 +127,7 @@ export const describeTitle = createServerFn({ method: "POST" })
         "confidence high only when certain.",
       ].join(" "),
       prompt: `Title name: ${data.name}\nType: ${data.kind}\nOutput language: ${data.outputLanguage}\nNotes from the uploader:\n${data.notes || "(none)"}`,
-      providerOptions: {
-        openai: {
-          forceReasoning: true,
-          reasoningEffort: "medium",
-          reasoningSummary: "auto",
-          store: false,
-          include: ["reasoning.encrypted_content"],
-        },
-      },
+      providerOptions: ai.providerOptions,
     });
 
     let out: z.infer<typeof Schema>;
