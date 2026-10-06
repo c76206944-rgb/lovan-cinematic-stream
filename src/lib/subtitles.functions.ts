@@ -144,14 +144,12 @@ export const translateSubtitleTrack = createServerFn({ method: "POST" })
     const text = await file.data.text();
     if (text.length > 120_000) throw new Error("This subtitle file is too long to translate in one go.");
 
-    const lovable = createOpenAI({
-      baseURL: "https://ai.gateway.lovable.dev/v1",
-      apiKey: key,
-      headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-    });
+    const { pickModel } = await import("@/lib/ai-model.server");
+    const ai = pickModel("low");
+    void createOpenAI;
 
     const result = streamText({
-      model: lovable.responses("openai/gpt-6-astra"),
+      model: ai.model,
       system: [
         "You translate WebVTT subtitle files.",
         "Return only a valid WebVTT file. Keep the WEBVTT header, every cue, every timestamp and every cue order exactly as given.",
@@ -159,9 +157,7 @@ export const translateSubtitleTrack = createServerFn({ method: "POST" })
         "No notes, no explanations, no code fences.",
       ].join(" "),
       prompt: `Translate the subtitle text into ${data.toLabel} (${data.toLang}).\n\n${text}`,
-      providerOptions: {
-        openai: { forceReasoning: true, reasoningEffort: "low", store: false },
-      },
+      providerOptions: ai.providerOptions,
     });
 
     let translated = (await result.text).trim();

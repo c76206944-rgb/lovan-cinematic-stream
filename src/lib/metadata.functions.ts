@@ -104,14 +104,12 @@ export const describeTitle = createServerFn({ method: "POST" })
     const key = process.env["LOVABLE_API_KEY"];
     if (!key) throw new Error("Missing LOVABLE_API_KEY");
 
-    const lovable = createOpenAI({
-      baseURL: "https://ai.gateway.lovable.dev/v1",
-      apiKey: key,
-      headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-    });
+    const { pickModel } = await import("@/lib/ai-model.server");
+    const ai = pickModel("medium");
+    void createOpenAI;
 
     const result = streamText({
-      model: lovable.responses("openai/gpt-6-astra"),
+      model: ai.model,
       output: Output.object({ schema: Schema }),
       system: [
         "You are a careful film archivist preparing catalogue metadata for a streaming service.",
