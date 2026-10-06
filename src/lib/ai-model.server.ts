@@ -4,10 +4,10 @@ import type { SharedV4ProviderOptions } from "@ai-sdk/provider";
 type Effort = "low" | "medium";
 
 // Uses the owner's Google Gemini key when present, otherwise the built-in AI gateway.
-export function pickModel(effort: Effort = "low") {
+export function pickModel(effort: Effort = "low", modelOverride?: string) {
   // Secrets pasted into dashboards often carry spaces, line breaks or quote marks. Google rejects those as invalid keys.
   const gemini = (process.env["GEMINI_API_KEY"] ?? "").trim().replace(/^["']|["']$/g, "").trim();
-  const geminiModel = (process.env["GEMINI_MODEL"] ?? "").trim() || "gemini-flash-latest";
+  const geminiModel = modelOverride || (process.env["GEMINI_MODEL"] ?? "").trim() || "gemini-flash-latest";
 
   if (gemini) {
     const google = createOpenAI({
@@ -15,7 +15,7 @@ export function pickModel(effort: Effort = "low") {
       apiKey: gemini,
     });
     const providerOptions: SharedV4ProviderOptions = {};
-    return { model: google.chat(geminiModel), providerOptions, provider: "gemini" as const };
+    return { model: google.chat(geminiModel), providerOptions, provider: "gemini" as const, modelName: geminiModel };
   }
 
   const key = process.env["LOVABLE_API_KEY"];
@@ -34,12 +34,22 @@ export function pickModel(effort: Effort = "low") {
       include: ["reasoning.encrypted_content"],
     },
   };
-  return { model: lovable.responses("openai/gpt-6-astra"), providerOptions, provider: "lovable-gateway" as const };
+  return { model: lovable.responses("openai/gpt-6-astra"), providerOptions, provider: "lovable-gateway" as const, modelName: "gateway" };
 }
+
+/** True when trying another Gemini model could help. */
+export function isOverloadError(error: unknown): boolean {
+  const outer = error as { lastError?: unknown } | undefined;
+  const e = (outer?.lastError ?? error) as { statusCode?: number; message?: string } | undefined;
+  return [429, 500, 503, 504].includes(e?.statusCode ?? 0) || /unavailable|overloaded|high demand/i.test(String(e?.message ?? ""));
+}
+
+export const GEMINI_FALLBACKS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
 
 /** Turns an AI provider failure into a message that says what actually went wrong. */
 export function explainAiError(error: unknown, provider: string): string {
-  const e = error as { statusCode?: number; message?: string; responseBody?: string } | undefined;
+  const outer = error as { lastError?: unknown } | undefined;
+  const e = (outer?.lastError ?? error) as { statusCode?: number; message?: string; responseBody?: string } | undefined;
   const status = e?.statusCode;
   let detail = "";
   if (typeof e?.responseBody === "string") {
@@ -58,6 +68,7 @@ export function explainAiError(error: unknown, provider: string): string {
   else if (status === 400 && /api key/i.test(detail)) hint = " Google rejected the key. Replace the secret with the raw key only.";
   else if (status === 401 || status === 403) hint = " The key is not allowed. Check it is active and has no website or referrer restriction.";
   else if (status === 404) hint = " The model name was not found. Add a secret named GEMINI_MODEL, for example gemini-2.5-flash.";
+  else if (status === 503 || status === 500) hint = " Google's servers are overloaded right now. Try again in a minute.";
   else if (status === 429) hint = " Quota or rate limit reached. Wait a minute, or the free tier limit is used up.";
 
   return `AI error [${provider}${status ? ` ${status}` : ""}]: ${detail}${hint}`;
