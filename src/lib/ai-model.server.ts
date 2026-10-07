@@ -7,7 +7,7 @@ type Effort = "low" | "medium";
 export function pickModel(effort: Effort = "low", modelOverride?: string) {
   // Secrets pasted into dashboards often carry spaces, line breaks or quote marks. Google rejects those as invalid keys.
   const gemini = (process.env["GEMINI_API_KEY"] ?? "").trim().replace(/^["']|["']$/g, "").trim();
-  const geminiModel = modelOverride || (process.env["GEMINI_MODEL"] ?? "").trim() || "gemini-flash-latest";
+  const geminiModel = modelOverride || (process.env["GEMINI_MODEL"] ?? "").trim() || "gemini-3.5-flash-lite";
 
   if (gemini) {
     const google = createOpenAI({
@@ -44,7 +44,7 @@ export function isOverloadError(error: unknown): boolean {
   return [429, 500, 503, 504].includes(e?.statusCode ?? 0) || /unavailable|overloaded|high demand/i.test(String(e?.message ?? ""));
 }
 
-export const GEMINI_FALLBACKS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+export const GEMINI_FALLBACKS = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.5-flash"];
 
 /** Turns an AI provider failure into a message that says what actually went wrong. */
 export function explainAiError(error: unknown, provider: string): string {
