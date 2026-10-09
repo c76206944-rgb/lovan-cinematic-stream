@@ -47,7 +47,7 @@ export function Header() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           <a
-            href="https://t.me/lovancinema"
+            href="https://t.me/lovansite"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden rounded-md border border-border px-3 py-2 text-sm text-foreground transition-colors hover:border-primary sm:inline-block"

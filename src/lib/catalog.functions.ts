@@ -239,7 +239,25 @@ export const setTitleStatus = createServerFn({ method: "POST" })
       .update({ ...patch, updated_at: new Date().toISOString() })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (data.action === "publish") {
+      try {
+        const { postTitleToTelegram } = await import("./telegram.server");
+        await postTitleToTelegram(context.supabase, data.id);
+        return { ok: true, telegram: "posted" as string };
+      } catch (e) {
+        return { ok: true, telegram: e instanceof Error ? e.message : "failed" };
+      }
+    }
     return { ok: true };
+  });
+
+export const postToTelegram = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const { postTitleToTelegram } = await import("./telegram.server");
+    return postTitleToTelegram(context.supabase, data.id);
   });
 
 export const deleteTitle = createServerFn({ method: "POST" })
