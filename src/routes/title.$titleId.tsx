@@ -15,13 +15,15 @@ import { downloadToApp, getOffline, saveOffline } from "@/lib/offline-store";
 import { useAccount } from "@/lib/use-account";
 import { loadProgress, saveProgress, useWatchlist } from "@/lib/viewer";
 import { catalogQuery, useCatalog } from "@/lib/use-catalog";
+import { slugify, titleSlug } from "@/lib/slug";
 
 type ViewTitle = Title;
 
 export const Route = createFileRoute("/title/$titleId")({
   loader: async ({ params, context }): Promise<{ title: ViewTitle }> => {
     const all = await context.queryClient.ensureQueryData(catalogQuery);
-    const title = all.find((t) => t.id === params.titleId);
+    const key = params.titleId.toLowerCase();
+    const title = all.find((t) => t.id === params.titleId) ?? all.find((t) => slugify(t.name) === key);
     if (!title) throw notFound();
     return { title };
   },
@@ -38,6 +40,7 @@ export const Route = createFileRoute("/title/$titleId")({
         { property: "og:description", content: title.synopsis },
         { property: "og:type", content: "video.other" },
         { name: "twitter:card", content: "summary_large_image" },
+        ...(title.image ? [{ property: "og:image", content: title.image }, { name: "twitter:image", content: title.image }] : []),
       ],
     };
   },
@@ -198,7 +201,7 @@ function TitleDetails() {
               </button>
               <DownloadButton title={title} />
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Watch ${title.name}${title.year ? ` (${title.year})` : ""} on LOVAN: https://www.lovan.site/title/${title.id}`)}`}
+                href={`https://wa.me/?text=${encodeURIComponent(`Watch ${title.name}${title.year ? ` (${title.year})` : ""} on LOVAN: https://www.lovan.site/title/${titleSlug(title.name, title.id)}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface"
@@ -210,7 +213,7 @@ function TitleDetails() {
                 type="button"
                 onClick={async () => {
                   try {
-                    await navigator.clipboard.writeText(`https://www.lovan.site/title/${title.id}`);
+                    await navigator.clipboard.writeText(`https://www.lovan.site/title/${titleSlug(title.name, title.id)}`);
                     setPlayMsg("Link copied.");
                   } catch {
                     setPlayMsg("Could not copy the link.");
