@@ -31,7 +31,7 @@ export function Footer() {
             </Link>
           ))}
           <a
-            href="https://t.me/lovancinema"
+            href="https://t.me/lovansite"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-primary transition-colors hover:text-foreground"

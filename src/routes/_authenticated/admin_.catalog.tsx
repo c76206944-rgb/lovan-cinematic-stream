@@ -8,7 +8,7 @@ import { BulkEditBar } from "@/components/site/BulkEditBar";
 import { PosterField } from "@/components/site/PosterField";
 import { SubtitleManager } from "@/components/site/SubtitleManager";
 
-import { deleteTitle, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
+import { deleteTitle, postToTelegram, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
 import { describeTitle } from "@/lib/metadata.functions";
 import { MetadataHistory } from "@/components/site/MetadataHistory";
 import { addHistory, snapshot, type HistoryFields } from "@/lib/ai-history";
@@ -75,6 +75,7 @@ function CatalogPage() {
   const navigate = useNavigate();
   const save = useServerFn(saveTitle);
   const setStatus = useServerFn(setTitleStatus);
+  const tg = useServerFn(postToTelegram);
   const remove = useServerFn(deleteTitle);
   const enrich = useServerFn(describeTitle);
   const [aiBusy, setAiBusy] = useState(false);
@@ -365,7 +366,10 @@ function CatalogPage() {
                         ) : (
                           <>
                             {r.published ? (
-                              <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => setStatus({ data: { id: r.id, action: "unpublish" } }), "Unpublished.")}>Unpublish</ActionButton>
+                              <>
+                                <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => setStatus({ data: { id: r.id, action: "unpublish" } }), "Unpublished.")}>Unpublish</ActionButton>
+                                <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => tg({ data: { id: r.id } }), "Posted to Telegram.")}>Post to Telegram</ActionButton>
+                              </>
                             ) : (
                               <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => setStatus({ data: { id: r.id, action: "publish" } }), "Published.")}>Publish</ActionButton>
                             )}
@@ -416,6 +420,9 @@ function CatalogPage() {
                 ) : (
                   <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => setStatus({ data: { id: r.id, action: "publish" } }), "Published.")}>Publish</ActionButton>
                 )}
+                {r.published && !r.archived ? (
+                  <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => tg({ data: { id: r.id } }), "Posted to Telegram.")}>Post to Telegram</ActionButton>
+                ) : null}
               </div>
             </article>
           ))}
