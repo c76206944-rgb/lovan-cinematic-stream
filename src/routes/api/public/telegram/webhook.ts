@@ -64,7 +64,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         if (!chatId || !text) return Response.json({ ok: true });
         const isPrivate = msg.chat.type === "private";
         const [cmdRaw, ...rest] = text.split(/\s+/);
-        const cmd = cmdRaw.toLowerCase().replace(/@lovancinemabot$/, "");
+        const cmd = (cmdRaw ?? "").toLowerCase().replace(/@lovancinemabot$/, "");
         try {
           if (cmd === "/start" || cmd === "/help") {
             await reply(token, chatId, HELP);
