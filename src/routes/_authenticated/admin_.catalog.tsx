@@ -478,7 +478,15 @@ function CatalogPage() {
                     Use this poster for other episodes that have no poster of their own
                   </label>
                 ) : null}
-                <SubtitleManager titleId={editing.id} />
+                <SubtitleManager
+                  titleId={editing.id}
+                  search={{
+                    query: (editing.kind === "series" && editing.series_name) || editing.name,
+                    year: editing.year || null,
+                    season: editing.kind === "series" ? editing.season : null,
+                    episode: editing.kind === "series" ? editing.episode : null,
+                  }}
+                />
 
               </div>
               <div className="mt-5 space-y-3 text-sm text-foreground">
