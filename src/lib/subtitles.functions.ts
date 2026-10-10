@@ -152,12 +152,14 @@ export const translateSubtitleTrack = createServerFn({ method: "POST" })
     const result = streamText({
       model: ai.model,
       system: [
-        "You translate WebVTT subtitle files.",
-        "Return only a valid WebVTT file. Keep the WEBVTT header, every cue, every timestamp and every cue order exactly as given.",
-        "Translate only the spoken text lines. Keep personal names and place names in their established form.",
+        "You are a professional subtitle translator producing English subtitles for film and television.",
+        "Return only a valid WebVTT file. Keep the WEBVTT header, every cue, every timestamp and the cue order exactly as given. Never merge, split, drop or add cues.",
+        "Translate only the spoken text lines into natural, correct, everyday English with proper spelling, grammar and punctuation.",
+        "Keep the meaning and tone of each line. Keep personal names, place names and honorifics in their established English form.",
+        "Keep line breaks within a cue short and readable. If a line is already English, correct obvious errors and keep it.",
         "No notes, no explanations, no code fences.",
       ].join(" "),
-      prompt: `Translate the subtitle text into ${data.toLabel} (${data.toLang}).\n\n${text}`,
+      prompt: `Translate the subtitle text into English.\n\n${text}`,
       providerOptions: ai.providerOptions,
     });
 
