@@ -152,12 +152,14 @@ export const translateSubtitleTrack = createServerFn({ method: "POST" })
     const result = streamText({
       model: ai.model,
       system: [
-        "You translate WebVTT subtitle files.",
-        "Return only a valid WebVTT file. Keep the WEBVTT header, every cue, every timestamp and every cue order exactly as given.",
-        "Translate only the spoken text lines. Keep personal names and place names in their established form.",
+        "You are a professional subtitle translator producing English subtitles for film and television.",
+        "Return only a valid WebVTT file. Keep the WEBVTT header, every cue, every timestamp and the cue order exactly as given. Never merge, split, drop or add cues.",
+        "Translate only the spoken text lines into natural, correct, everyday English with proper spelling, grammar and punctuation.",
+        "Keep the meaning and tone of each line. Keep personal names, place names and honorifics in their established English form.",
+        "Keep line breaks within a cue short and readable. If a line is already English, correct obvious errors and keep it.",
         "No notes, no explanations, no code fences.",
       ].join(" "),
-      prompt: `Translate the subtitle text into ${data.toLabel} (${data.toLang}).\n\n${text}`,
+      prompt: `Translate the subtitle text into English.\n\n${text}`,
       providerOptions: ai.providerOptions,
     });
 
@@ -230,4 +232,62 @@ export const importPosterFromUrl = createServerFn({ method: "POST" })
       .upload(path, new Blob([best.bytes], { type: best.type }), { contentType: best.type, upsert: false });
     if (error) throw new Error(error.message);
     return { path, width: best.width, height: best.height };
+  });
+
+export type SubtitleMatch = { fileId: number; release: string; downloads: number; hearingImpaired: boolean };
+
+const OS_BASE = "https://api.opensubtitles.com/api/v1";
+const osHeaders = () => {
+  const key = process.env["OPENSUBTITLES_API_KEY"];
+  if (!key) throw new Error("Subtitle search is not set up yet. Add the OpenSubtitles key first.");
+  return { "Api-Key": key, "User-Agent": "LOVAN v1.0", Accept: "application/json", "Content-Type": "application/json" };
+};
+
+/** Searches OpenSubtitles for English subtitles matching a title, year, season and episode. */
+export const searchSubtitlesOnline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      query: z.string().trim().min(1).max(200),
+      year: z.number().int().min(1900).max(2100).nullable(),
+      season: z.number().int().min(0).max(100).nullable(),
+      episode: z.number().int().min(0).max(2000).nullable(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<SubtitleMatch[]> => {
+    await requireStaff(context);
+    const params = new URLSearchParams({ query: data.query, languages: "en", order_by: "download_count" });
+    if (data.year) params.set("year", String(data.year));
+    if (data.season) params.set("season_number", String(data.season));
+    if (data.episode) params.set("episode_number", String(data.episode));
+    const res = await fetch(`${OS_BASE}/subtitles?${params}`, { headers: osHeaders() });
+    if (!res.ok) throw new Error(`Subtitle search failed (${res.status}).`);
+    const body = (await res.json()) as {
+      data?: { attributes?: { release?: string; download_count?: number; hearing_impaired?: boolean; files?: { file_id: number; file_name?: string }[] } }[];
+    };
+    return (body.data ?? [])
+      .map((d) => {
+        const a = d.attributes ?? {};
+        const f = a.files?.[0];
+        if (!f) return null;
+        return { fileId: f.file_id, release: a.release || f.file_name || "Unnamed release", downloads: a.download_count ?? 0, hearingImpaired: Boolean(a.hearing_impaired) };
+      })
+      .filter((m): m is SubtitleMatch => Boolean(m))
+      .slice(0, 12);
+  });
+
+/** Downloads a chosen OpenSubtitles file and returns its text for review before saving. */
+export const fetchOnlineSubtitle = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ fileId: z.number().int().positive() }).parse(input))
+  .handler(async ({ data, context }): Promise<{ text: string }> => {
+    await requireStaff(context);
+    const res = await fetch(`${OS_BASE}/download`, { method: "POST", headers: osHeaders(), body: JSON.stringify({ file_id: data.fileId, sub_format: "srt" }) });
+    if (!res.ok) throw new Error(res.status === 406 ? "Today's free download limit is used up. Try again tomorrow." : `Download failed (${res.status}).`);
+    const { link } = (await res.json()) as { link?: string };
+    if (!link) throw new Error("No download link was returned.");
+    const file = await fetch(link);
+    if (!file.ok) throw new Error("The subtitle file could not be downloaded.");
+    const { decodeSubtitleBytes } = await import("@/lib/subtitle-file");
+    return { text: decodeSubtitleBytes(new Uint8Array(await file.arrayBuffer())) };
   });

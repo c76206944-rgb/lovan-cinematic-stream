@@ -107,11 +107,10 @@ export function Player({
     ).then((pairs) => {
       if (!alive) return;
       setLocal(Object.fromEntries(pairs.filter((p): p is readonly [string, string] => Boolean(p))));
-      // Like YouTube: turn on the viewer's last choice or their device language.
+      // Turn on the viewer's last choice, otherwise English, otherwise the first track.
       const saved = localStorage.getItem("lovan-subtitle");
       if (saved === "off") return;
-      const device = navigator.language.slice(0, 2).toLowerCase();
-      const pick = tracks.find((t) => t.lang === saved) ?? tracks.find((t) => t.lang.slice(0, 2).toLowerCase() === device) ?? tracks[0];
+      const pick = tracks.find((t) => t.lang === saved) ?? tracks.find((t) => t.lang.slice(0, 2).toLowerCase() === "en") ?? tracks[0];
       if (pick) setSubtitle(pick.lang);
     });
     return () => {
@@ -201,9 +200,15 @@ export function Player({
         <div className="pointer-events-auto flex flex-col items-end gap-2">
           <div className="flex gap-2">
             {tracks.length > 0 ? (
-              <button type="button" onClick={() => { setSubOpen((v) => !v); setSpeedOpen(false); }} className={chip}>
+              <button
+                type="button"
+                aria-label="Choose subtitles"
+                aria-pressed={subtitle !== "off"}
+                onClick={() => { setSubOpen((v) => !v); setSpeedOpen(false); }}
+                className={`${chip} font-semibold ${subtitle !== "off" ? "border-primary text-primary" : ""}`}
+              >
                 <Subtitles className="size-4" strokeWidth={1.5} />
-                Subtitles
+                CC
               </button>
             ) : null}
             <button type="button" onClick={() => { setSpeedOpen((v) => !v); setSubOpen(false); }} className={chip}>
