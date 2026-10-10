@@ -238,7 +238,7 @@ export type SubtitleMatch = { fileId: number; release: string; downloads: number
 
 const OS_BASE = "https://api.opensubtitles.com/api/v1";
 const osHeaders = () => {
-  const key = process.env.OPENSUBTITLES_API_KEY;
+  const key = process.env["OPENSUBTITLES_API_KEY"];
   if (!key) throw new Error("Subtitle search is not set up yet. Add the OpenSubtitles key first.");
   return { "Api-Key": key, "User-Agent": "LOVAN v1.0", Accept: "application/json", "Content-Type": "application/json" };
 };
