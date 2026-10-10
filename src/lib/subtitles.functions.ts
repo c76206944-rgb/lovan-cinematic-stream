@@ -260,6 +260,8 @@ export const searchSubtitlesOnline = createServerFn({ method: "POST" })
     if (data.year) params.set("year", String(data.year));
     if (data.season) params.set("season_number", String(data.season));
     if (data.episode) params.set("episode_number", String(data.episode));
+    params.set("query", data.query.toLowerCase());
+    params.sort();
     const res = await fetch(`${OS_BASE}/subtitles?${params}`, { headers: osHeaders() });
     if (!res.ok) throw new Error(`Subtitle search failed (${res.status}).`);
     const body = (await res.json()) as {
