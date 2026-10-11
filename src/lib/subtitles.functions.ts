@@ -36,9 +36,12 @@ export const getSubtitleTracks = createServerFn({ method: "POST" })
       .filter((t) => Boolean(t.url));
   });
 
-async function requireStaff(context: { supabase: { rpc: (...args: never[]) => unknown }; userId: string }) {
-  const rpc = context.supabase.rpc as unknown as (n: string, a: Record<string, unknown>) => Promise<{ data: unknown }>;
-  const { data: staff } = await rpc("is_staff", { _user_id: context.userId });
+async function requireStaff(context: { supabase: unknown; userId: string }) {
+  const client = context.supabase as {
+    rpc: (n: string, a: Record<string, unknown>) => PromiseLike<{ data: unknown }>;
+  };
+  // Call rpc on the client itself so it keeps its internal reference.
+  const { data: staff } = await client.rpc("is_staff", { _user_id: context.userId });
   if (!staff) throw new Error("Forbidden");
 }
 
