@@ -26,6 +26,8 @@ export type Title = {
   hasVideo: boolean;
   canDownload: boolean;
   addedAt: string;
+  /** Size of the video file in bytes, when known. */
+  bytes?: number | null;
 };
 
 export type Rail = { id: string; heading: string; items: Title[] };

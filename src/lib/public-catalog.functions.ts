@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Title } from "@/data/titles";
 
 const fields =
-  "id, name, kind, year, country, language, genres, runtime, maturity, synopsis, director, cast_members, poster_url, series_name, season, episode, episode_title, video_path, offline_allowed, created_at";
+  "id, name, kind, year, country, language, genres, runtime, maturity, synopsis, director, cast_members, poster_url, series_name, season, episode, episode_title, video_path, video_bytes, offline_allowed, created_at";
 
 /** Every published title, with short lived poster links. Storage paths are never returned. */
 export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Promise<Title[]> => {
@@ -67,6 +67,7 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
       hasVideo: Boolean(r.video_path),
       canDownload: Boolean(r.video_path) && Boolean(r.offline_allowed),
       addedAt: r.created_at,
+      bytes: r.video_bytes ?? null,
     }));
   } catch (err) {
     console.warn("[getCatalog] Safe SSR fallback activated:", err);

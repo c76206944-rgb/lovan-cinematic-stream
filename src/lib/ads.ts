@@ -7,6 +7,7 @@
  * - Every viewer sees at most DAILY_AD_LIMIT adverts per calendar day (UTC).
  * - Ad code is injected once per page load, never twice.
  */
+import { isKidsMode } from "@/lib/kids-mode";
 
 export const DAILY_AD_LIMIT = 15;
 
