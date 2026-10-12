@@ -184,9 +184,17 @@ export function clearAdsForAuth(): void {
   if (multitagLoaded && typeof location !== "undefined") location.reload();
 }
 
-/** True when adverts may run right now: not staff, not signing in, under the daily cap. */
+/** Kids mode never shows adverts. Removes tags and reloads once if tags already ran. */
+export function clearAdsForKids(): void {
+  removeAdScripts();
+  if (multitagLoaded && typeof location !== "undefined") location.reload();
+  listeners.forEach((fn) => fn());
+}
+
+/** True when adverts may run right now: not staff, not kids mode, not signing in, under the daily cap. */
 export function adsAllowed(): boolean {
   if (isStaffMode()) return false;
+  if (isKidsMode()) return false;
   if (onAuthPage()) return false;
   return adsSeenToday() < DAILY_AD_LIMIT;
 }
