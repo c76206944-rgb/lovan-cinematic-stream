@@ -251,6 +251,35 @@ export type Database = {
         }
         Relationships: []
       }
+      title_ratings: {
+        Row: {
+          score: number
+          title_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          score: number
+          title_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          score?: number
+          title_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "title_ratings_title_id_fkey"
+            columns: ["title_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_titles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       title_requests: {
         Row: {
           created_at: string
@@ -385,6 +414,14 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      rating_stats: {
+        Args: never
+        Returns: {
+          average: number
+          title_id: string
+          votes: number
+        }[]
+      }
     }
     Enums: {
       app_role: "super_admin" | "content_admin" | "ad_manager" | "support_admin"
