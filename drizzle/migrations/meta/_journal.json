@@ -71,6 +71,13 @@
       "when": 1790438175274,
       "tag": "0009_watch_list_progress_collections",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791774796149,
+      "tag": "0010_title_ratings",
+      "breakpoints": true
     }
   ]
 }
