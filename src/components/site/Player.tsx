@@ -18,13 +18,18 @@ export function Player({
   onExit,
   startAt = 0,
   onProgress,
+  next,
 }: {
   src: string;
   tracks?: SubtitleTrack[];
   onExit?: () => void;
   startAt?: number;
   onProgress?: ((position: number, duration: number) => void) | undefined;
+  /** Next episode, offered in the last minute and played when this one ends. */
+  next?: { label: string; play: () => void } | undefined;
 }) {
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [skipNext, setSkipNext] = useState(false);
   const boxRef = useRef<FullscreenBox | null>(null);
   const videoRef = useRef<FullscreenVideo | null>(null);
   const lastSaved = useRef(0);
@@ -81,6 +86,19 @@ export function Player({
     };
     media.addEventListener("change", onRotate);
     return () => media.removeEventListener("change", onRotate);
+  }, []);
+
+  useEffect(() => {
+    const onSeek = (e: Event) => {
+      const v = videoRef.current;
+      const sec = (e as CustomEvent<number>).detail;
+      if (!v || !Number.isFinite(sec)) return;
+      v.currentTime = sec;
+      void v.play().catch(() => {});
+      boxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    window.addEventListener("lovan-seek", onSeek);
+    return () => window.removeEventListener("lovan-seek", onSeek);
   }, []);
 
   useEffect(() => {
@@ -166,9 +184,19 @@ export function Player({
             setNoPicture(e.currentTarget.videoWidth === 0);
             if (startAt > 0) e.currentTarget.currentTime = startAt;
           }}
-          onTimeUpdate={(e) => report(e.currentTarget)}
+          onTimeUpdate={(e) => {
+            const v = e.currentTarget;
+            report(v);
+            if (next && v.duration > 120) {
+              const left = v.duration - v.currentTime;
+              setRemaining(left <= 60 ? Math.ceil(left) : null);
+            }
+          }}
           onPause={(e) => report(e.currentTarget, true)}
-          onEnded={(e) => report(e.currentTarget, true)}
+          onEnded={(e) => {
+            report(e.currentTarget, true);
+            if (next && !skipNext) next.play();
+          }}
           onPlaying={(e) => {
             const v = e.currentTarget as HTMLVideoElement & {
               getVideoPlaybackQuality?: () => { totalVideoFrames: number };
@@ -179,13 +207,20 @@ export function Player({
               if (v.videoWidth === 0 || frames === 0) setNoPicture(true);
             }, 2500);
           }}
-          className={`h-full w-full bg-black ${fill ? "object-cover" : "object-contain"}`}
+          className={`h-full w-full bg-black ${fill ? "object-cover object-bottom" : "object-contain"}`}
         >
           {tracks.filter((t) => local[t.lang]).map((t) => (
             <track key={t.lang} kind="subtitles" src={local[t.lang]} srcLang={t.lang} label={t.label} />
           ))}
         </video>
       </div>
+      {next && remaining !== null && !skipNext ? (
+        <div className="absolute bottom-16 right-3 z-10 flex items-center gap-3 rounded-md border border-primary bg-background/90 p-3 text-xs text-foreground">
+          <span>Next: {next.label} in {remaining}s</span>
+          <button type="button" onClick={next.play} className="rounded bg-primary px-2.5 py-1 font-medium text-primary-foreground">Play now</button>
+          <button type="button" onClick={() => setSkipNext(true)} className="text-muted-foreground">Cancel</button>
+        </div>
+      ) : null}
       {noPicture ? (
         <p className="absolute inset-x-4 bottom-16 rounded-md border border-border bg-background/90 p-3 text-center text-xs text-foreground">
           This browser can play the sound of this file but not its picture. The video uses a format (HEVC / x265) that many laptop browsers do not support. Try Safari or Microsoft Edge, or upload an H.264 version of this film.
@@ -216,7 +251,7 @@ export function Player({
               {speed}x
             </button>
             <button type="button" onClick={() => setFill((v) => !v)} aria-pressed={fill} className={chip}>
-              {fill ? "Fill" : "Fit"}
+              {fill ? "Fill (subtitles kept)" : "Fit"}
             </button>
             <button type="button" onClick={() => void goFullscreen()} aria-label="Full screen" className={chip}>
               <Maximize2 className="size-4" strokeWidth={1.5} />

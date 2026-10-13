@@ -16,6 +16,12 @@ import { useAccount } from "@/lib/use-account";
 import { loadProgress, saveProgress, useWatchlist } from "@/lib/viewer";
 import { catalogQuery, useCatalog } from "@/lib/use-catalog";
 import { slugify, titleSlug } from "@/lib/slug";
+import { TitleRating } from "@/components/site/TitleRating";
+import { isKidsTitle, useKidsMode } from "@/lib/kids-mode";
+
+function formatSize(bytes: number): string {
+  return bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`;
+}
 
 type ViewTitle = Title;
 
@@ -139,12 +145,37 @@ function TitleDetails() {
     }
   };
   const progressUserId = account.userId;
+  const kids = useKidsMode();
+  const idx = episodes.findIndex((e) => e.id === title.id);
+  const nextEp = idx >= 0 ? episodes[idx + 1] : undefined;
+  const navigate = Route.useNavigate();
+  const next = nextEp
+    ? {
+        label: `S${nextEp.season ?? 1} E${nextEp.episode ?? 1}`,
+        play: () => void navigate({ to: "/title/$titleId", params: { titleId: nextEp.id }, search: { play: 1 } as never }),
+      }
+    : undefined;
+  const autoPlay = (Route.useSearch() as { play?: number }).play === 1;
+  useEffect(() => {
+    if (autoPlay && title.hasVideo) void startPlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title.id, autoPlay]);
+
+  if (kids && !isKidsTitle(title)) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-24 text-center">
+        <h1 className="text-2xl font-semibold text-foreground">Not available in Kids Mode</h1>
+        <p className="mt-3 text-sm text-muted-foreground">A parent can unlock everything with the Kids button at the top.</p>
+        <Link to="/home" className="mt-6 inline-block rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground">Back to kids titles</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-16">
       {videoUrl ? (
         <section className="bg-background">
-          <Player src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} startAt={startAt} onProgress={progressUserId ? (p, d) => void saveProgress(progressUserId, title.id, p, d) : undefined} />
+          <Player src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} startAt={startAt} next={next} onProgress={progressUserId ? (p, d) => void saveProgress(progressUserId, title.id, p, d) : undefined} />
         </section>
       ) : (
       <section className="relative">
@@ -175,11 +206,12 @@ function TitleDetails() {
               <p className="mt-2 text-sm text-foreground">Season {title.season ?? 1}, Episode {title.episode ?? 1}{title.episodeTitle && title.episodeTitle !== title.name ? `: ${title.episodeTitle}` : ""}</p>
             ) : null}
             <p className="mt-3 text-xs text-muted-foreground">
-              {[title.year, title.runtime, title.maturity]
+              {[title.year, title.runtime, title.maturity, title.bytes ? `Uses about ${formatSize(title.bytes)} of data` : ""]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
             <p className="mt-5 max-w-2xl text-sm leading-relaxed text-muted-foreground">{title.synopsis}</p>
+            <TitleRating titleId={title.id} />
 
             <div className="mt-7 flex flex-wrap gap-3">
               <button
@@ -201,7 +233,7 @@ function TitleDetails() {
               </button>
               <DownloadButton title={title} />
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Watch ${title.name}${title.year ? ` (${title.year})` : ""} on LOVAN: https://www.lovan.site/title/${titleSlug(title.name, title.id)}`)}`}
+                href={`https://wa.me/?text=${encodeURIComponent(`Watching ${title.name}${title.kind === "series" ? ` Ep ${title.episode ?? 1}` : ""} on LOVAN. Stream free, no subscription: https://www.lovan.site/title/${titleSlug(title.name, title.id)}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-md border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface"

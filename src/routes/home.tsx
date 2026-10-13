@@ -6,6 +6,7 @@ import { Rail } from "@/components/site/Rail";
 import { AdSlot } from "@/components/site/AdSlot";
 import { useCatalog } from "@/lib/use-catalog";
 import { useCollections, useProgress } from "@/lib/viewer";
+import { useRatingStats } from "@/components/site/TitleRating";
 import type { Rail as RailType, Title } from "@/data/titles";
 
 export const Route = createFileRoute("/home")({
@@ -41,11 +42,17 @@ function HomePage() {
   const continueItems = pickIds(
     progress.filter((p) => p.duration_seconds > 0 && p.position_seconds > 30 && p.position_seconds < p.duration_seconds - 30).map((p) => p.title_id),
   );
+  const stats = useRatingStats();
+  const topRated = collapseSeries(titles)
+    .filter((t) => (stats.get(t.id)?.votes ?? 0) > 0)
+    .sort((a, b) => (stats.get(b.id)?.average ?? 0) - (stats.get(a.id)?.average ?? 0))
+    .slice(0, 12);
   const custom: RailType[] = collections
     .filter((c) => c.placement === "rail")
     .map((c) => ({ id: `col-${c.id}`, heading: c.label, items: pickIds(c.title_ids) }));
   const rails = [
     ...(continueItems.length ? [{ id: "continue", heading: "Continue watching", items: continueItems }] : []),
+    ...(topRated.length ? [{ id: "top-rated", heading: "Top rated by viewers", items: topRated }] : []),
     ...custom,
     ...buildRails(titles),
   ];

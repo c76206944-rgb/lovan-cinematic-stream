@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Compass, Home, List, Search, User } from "lucide-react";
 import { useAccount } from "@/lib/use-account";
+import { KidsModeButton } from "@/components/site/KidsModeButton";
 
 const desktopLinks = [
   { to: "/home", label: "Home" },
@@ -46,6 +47,7 @@ export function Header() {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+          <KidsModeButton />
           <a
             href="https://t.me/lovansite"
             target="_blank"
