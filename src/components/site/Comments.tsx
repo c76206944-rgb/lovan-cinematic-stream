@@ -91,11 +91,37 @@ export function Comments({ titleId }: { titleId: string }) {
                 </button>
               ) : null}
             </div>
-            <p className="mt-1 whitespace-pre-line text-sm text-foreground">{c.body}</p>
+            <p className="mt-1 whitespace-pre-line text-sm text-foreground">{withTimestamps(c.body)}</p>
           </li>
         ))}
         {items.length === 0 ? <li className="text-sm text-muted-foreground">No comments yet.</li> : null}
       </ul>
     </section>
   );
+}
+
+const STAMP = /\b(?:(\d{1,2}):)?([0-5]?\d):([0-5]\d)\b/g;
+
+/** Turns times like 14:20 or 1:05:12 into buttons that jump the player there. */
+function withTimestamps(text: string): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(STAMP)) {
+    const at = m.index ?? 0;
+    if (at > last) out.push(text.slice(last, at));
+    const sec = Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+    out.push(
+      <button
+        key={at}
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent("lovan-seek", { detail: sec }))}
+        className="mx-0.5 rounded-sm border border-primary px-1.5 text-xs font-medium text-primary"
+      >
+        {m[0]}
+      </button>,
+    );
+    last = at + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
 }
