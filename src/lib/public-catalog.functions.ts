@@ -36,7 +36,8 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
         if (p) r.poster_url = p.path;
       }
     }
-    const paths = rows.map((r) => r.poster_url).filter((p): p is string => Boolean(p));
+    const paths = rows.map((r) => r.poster_url).filter((p): p is string => Boolean(p) && !/^https:\/\//.test(p!));
+    for (const r of rows) if (r.poster_url && /^https:\/\//.test(r.poster_url)) signedExternal.set(r.poster_url, r.poster_url);
     const signed = new Map<string, string>();
     if (paths.length) {
       try {
@@ -87,6 +88,8 @@ export const getPlaybackUrl = createServerFn({ method: "POST" })
         .eq("id", data.id)
         .maybeSingle();
       if (!row || !row.published || row.archived || !row.video_path) throw new Error("This title cannot be played yet.");
+      // Free open films are hosted by their makers and stream straight from there.
+      if (/^https:\/\//.test(row.video_path)) return { url: row.video_path };
       const { data: s, error } = await supabaseAdmin.storage.from("media").createSignedUrl(row.video_path, 60 * 60 * 3);
       if (error || !s) throw new Error("Could not start playback.");
       return { url: s.signedUrl };
