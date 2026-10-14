@@ -17,6 +17,7 @@ import {
   getValidSessionToken,
   type Job,
 } from "@/lib/upload-queue";
+import { isZip, videosFromZip } from "@/lib/zip-videos";
 import { collectDropped, guessFromPath, isVideoFile, relPath, type PickedFile } from "@/lib/folder-files";
 import { toast } from "sonner";
 
@@ -214,7 +215,7 @@ function BulkPage() {
               Choose files
               <input
                 type="file"
-                accept="video/*,.m3u8,.mkv,.avi,.mp4,.mov,.webm"
+                accept="video/*,.zip,.m3u8,.mkv,.avi,.mp4,.mov,.webm"
                 multiple
                 className="hidden"
                 onChange={(e) => {
