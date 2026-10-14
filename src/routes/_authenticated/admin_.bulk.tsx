@@ -17,6 +17,7 @@ import {
   getValidSessionToken,
   type Job,
 } from "@/lib/upload-queue";
+import { isZip, videosFromZip } from "@/lib/zip-videos";
 import { collectDropped, guessFromPath, isVideoFile, relPath, type PickedFile } from "@/lib/folder-files";
 import { toast } from "sonner";
 
@@ -94,9 +95,26 @@ function BulkPage() {
     );
   };
 
+  const fromZips = async (zips: File[]) => {
+    for (const z of zips) {
+      try {
+        const { files, compressed } = await videosFromZip(z);
+        if (compressed) toast.error(`${compressed} video${compressed === 1 ? " is" : "s are"} squeezed inside "${z.name}". Unzip it on your phone first, then choose the folder.`);
+        if (files.length) addPicked(files);
+        else if (!compressed) toast.error(`No videos were found in "${z.name}".`);
+      } catch {
+        toast.error(`"${z.name}" could not be opened. Unzip it on your phone first, then choose the folder.`);
+      }
+    }
+  };
+
   const pick = (files: FileList | null, folderMode = false) => {
     if (!files || files.length === 0) return;
-    const all = Array.from(files).filter(Boolean);
+    const picked = Array.from(files).filter(Boolean);
+    const zips = picked.filter((f) => isZip(f.name));
+    if (zips.length) void fromZips(zips);
+    const all = picked.filter((f) => !isZip(f.name));
+    if (all.length === 0) return;
     const videos = all.filter((f) => isVideoFile(f.name));
     const list = folderMode ? videos : all.filter((f) => f.size > 0);
     if (folderMode) {
@@ -197,7 +215,7 @@ function BulkPage() {
               Choose files
               <input
                 type="file"
-                accept="video/*,.m3u8,.mkv,.avi,.mp4,.mov,.webm"
+                accept="video/*,.zip,.m3u8,.mkv,.avi,.mp4,.mov,.webm"
                 multiple
                 className="hidden"
                 onChange={(e) => {
