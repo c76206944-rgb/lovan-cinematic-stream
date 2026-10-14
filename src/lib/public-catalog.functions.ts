@@ -37,8 +37,8 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
       }
     }
     const paths = rows.map((r) => r.poster_url).filter((p): p is string => Boolean(p) && !/^https:\/\//.test(p!));
-    for (const r of rows) if (r.poster_url && /^https:\/\//.test(r.poster_url)) signedExternal.set(r.poster_url, r.poster_url);
     const signed = new Map<string, string>();
+    for (const r of rows) if (r.poster_url && /^https:\/\//.test(r.poster_url)) signed.set(r.poster_url, r.poster_url);
     if (paths.length) {
       try {
         const { data: urls } = await supabaseAdmin.storage.from("media").createSignedUrls(paths, 60 * 60 * 6);
