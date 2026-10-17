@@ -8,9 +8,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "LOVAN | Films and series from everywhere" },
-      { name: "description", content: "Watch films and series on LOVAN. Free to watch, supported by advertising." },
+      { name: "description", content: "Watch films and series free on LOVAN. Share with family, friends, girlfriends, boyfriends, enemies, situationships and exes." },
       { property: "og:title", content: "LOVAN | Films and series" },
-      { property: "og:description", content: "Watch films and series on LOVAN, free." },
+      { property: "og:description", content: "Watch films and series free on LOVAN. Share with family, friends, girlfriends, boyfriends, enemies, situationships and exes." },
+      { name: "twitter:description", content: "Watch films and series free on LOVAN. Share with family, friends, girlfriends, boyfriends, enemies, situationships and exes." },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://lovan.site/" },
       { property: "og:image", content: "https://lovan.site/og-lovan.jpg?v=2" },
