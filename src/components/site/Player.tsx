@@ -9,6 +9,17 @@ export type SubtitleTrack = { label: string; lang: string; url: string };
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
+type AudioOption = { index: number; label: string; enabled: boolean };
+type AudioTrackList = { length: number; [i: number]: { label: string; language: string; enabled: boolean } | undefined };
+
+/** Picture modes run on the viewer's device: no extra data, no buffering. */
+const PICTURE = {
+  normal: { label: "Normal", filter: "none" },
+  bright: { label: "Bright boost", filter: "brightness(1.15) contrast(1.05) saturate(1.05)" },
+  vivid: { label: "Vivid and crisp", filter: "contrast(1.12) saturate(1.15) brightness(1.04)" },
+} as const;
+type PictureMode = keyof typeof PICTURE;
+
 /**
  * Video player with playback speed, subtitle choice, full screen and a way back.
  */
@@ -40,6 +51,14 @@ export function Player({
   const [subtitle, setSubtitle] = useState<string>("off");
   const [noPicture, setNoPicture] = useState(false);
   const [fill, setFill] = useState(false);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [audioList, setAudioList] = useState<AudioOption[]>([]);
+  const [pictureOpen, setPictureOpen] = useState(false);
+  const [picture, setPicture] = useState<PictureMode>("normal");
+  useEffect(() => {
+    const saved = localStorage.getItem("lovan-picture") as PictureMode | null;
+    if (saved && saved in PICTURE) setPicture(saved);
+  }, []);
   const report = (v: HTMLVideoElement, force = false) => {
     if (!onProgress) return;
     const now = Date.now();
@@ -153,6 +172,37 @@ export function Player({
     localStorage.setItem("lovan-subtitle", lang);
   };
 
+  const readAudio = () => {
+    const list = (videoRef.current as (HTMLVideoElement & { audioTracks?: AudioTrackList }) | null)?.audioTracks;
+    if (!list) return setAudioList([]);
+    const out: AudioOption[] = [];
+    for (let i = 0; i < list.length; i += 1) {
+      const t = list[i];
+      if (!t) continue;
+      out.push({ index: i, label: t.label || t.language || `Track ${i + 1}`, enabled: t.enabled });
+    }
+    setAudioList(out);
+  };
+
+  const chooseAudio = (index: number) => {
+    const list = (videoRef.current as (HTMLVideoElement & { audioTracks?: AudioTrackList }) | null)?.audioTracks;
+    if (!list) return;
+    for (let i = 0; i < list.length; i += 1) {
+      const t = list[i];
+      if (t) t.enabled = i === index;
+    }
+    readAudio();
+    setAudioOpen(false);
+  };
+
+  // Android can hand the stream to MX Player or VLC, which can switch any language in the file.
+  const externalUrl = /^https?:\/\//.test(src) ? src : null;
+  const intentFor = (pkg: string) => {
+    if (!externalUrl) return "#";
+    const u = new URL(externalUrl);
+    return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(":", "")};type=video/*;package=${pkg};end`;
+  };
+
   const leave = async () => {
     if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
     onExit?.();
@@ -183,6 +233,7 @@ export function Player({
           onLoadedMetadata={(e) => {
             setNoPicture(e.currentTarget.videoWidth === 0);
             if (startAt > 0) e.currentTarget.currentTime = startAt;
+            readAudio();
           }}
           onTimeUpdate={(e) => {
             const v = e.currentTarget;
@@ -207,6 +258,7 @@ export function Player({
               if (v.videoWidth === 0 || frames === 0) setNoPicture(true);
             }, 2500);
           }}
+          style={{ filter: PICTURE[picture].filter }}
           className={`h-full w-full bg-black ${fill ? "object-cover object-bottom" : "object-contain"}`}
         >
           {tracks.filter((t) => local[t.lang]).map((t) => (
@@ -246,7 +298,18 @@ export function Player({
                 CC
               </button>
             ) : null}
-            <button type="button" onClick={() => { setSpeedOpen((v) => !v); setSubOpen(false); }} className={chip}>
+            <button type="button" onClick={() => { setAudioOpen((v) => !v); setSubOpen(false); setSpeedOpen(false); setPictureOpen(false); }} className={chip}>
+              Audio
+            </button>
+            <button
+              type="button"
+              aria-pressed={picture !== "normal"}
+              onClick={() => { setPictureOpen((v) => !v); setSubOpen(false); setSpeedOpen(false); setAudioOpen(false); }}
+              className={`${chip} ${picture !== "normal" ? "border-primary text-primary" : ""}`}
+            >
+              Picture
+            </button>
+            <button type="button" onClick={() => { setSpeedOpen((v) => !v); setSubOpen(false); setAudioOpen(false); setPictureOpen(false); }} className={chip}>
               <Gauge className="size-4" strokeWidth={1.5} />
               {speed}x
             </button>
@@ -267,6 +330,46 @@ export function Player({
                   className={`block w-24 rounded px-2 py-1 text-left text-xs ${s === speed ? "text-primary" : "text-foreground"}`}
                 >
                   {s === 1 ? "Normal" : `${s}x`}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {audioOpen ? (
+            <div className="w-56 rounded-md border border-border bg-background p-1">
+              {audioList.length > 1 ? (
+                audioList.map((a) => (
+                  <button
+                    key={a.index}
+                    type="button"
+                    onClick={() => chooseAudio(a.index)}
+                    className={`block w-full rounded px-2 py-1 text-left text-xs ${a.enabled ? "text-primary" : "text-foreground"}`}
+                  >
+                    {a.label}
+                  </button>
+                ))
+              ) : (
+                <p className="px-2 py-1 text-xs text-muted-foreground">
+                  This browser shows one language only. Open the film in MX Player or VLC to switch language.
+                </p>
+              )}
+              {externalUrl ? (
+                <>
+                  <a href={intentFor("com.mxtech.videoplayer.ad")} className="mt-1 block rounded px-2 py-1 text-xs text-foreground">Play in MX Player</a>
+                  <a href={intentFor("org.videolan.vlc")} className="block rounded px-2 py-1 text-xs text-foreground">Play in VLC</a>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+          {pictureOpen ? (
+            <div className="rounded-md border border-border bg-background p-1">
+              {(Object.keys(PICTURE) as PictureMode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => { setPicture(m); setPictureOpen(false); localStorage.setItem("lovan-picture", m); }}
+                  className={`block w-40 rounded px-2 py-1 text-left text-xs ${m === picture ? "text-primary" : "text-foreground"}`}
+                >
+                  {PICTURE[m].label}
                 </button>
               ))}
             </div>
