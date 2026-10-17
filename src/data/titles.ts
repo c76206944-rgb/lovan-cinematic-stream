@@ -49,7 +49,8 @@ export function collapseSeries(items: Title[]): Title[] {
     }
     out.push(t);
   }
-  return out.sort((a, b) => b.addedAt.localeCompare(a.addedAt));
+  // Newest release year first, then most recently added within the same year.
+  return out.sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || b.addedAt.localeCompare(a.addedAt));
 }
 
 export function matchesSearch(t: Title, q: string) {
