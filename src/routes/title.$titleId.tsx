@@ -129,6 +129,11 @@ function TitleDetails() {
         .sort((a, b) => (a.season ?? 0) - (b.season ?? 0) || (a.episode ?? 0) - (b.episode ?? 0))
     : [];
   const seriesImage = title.image || episodes.find((e) => e.image)?.image || "";
+  const seasons = [...new Set(episodes.map((e) => e.season ?? 1))].sort((a, b) => a - b);
+  const [season, setSeason] = useState<number>(title.season ?? 1);
+  useEffect(() => { setSeason(title.season ?? 1); }, [title.id, title.season]);
+  const activeSeason = seasons.includes(season) ? season : (seasons[0] ?? 1);
+  const seasonEpisodes = episodes.filter((e) => (e.season ?? 1) === activeSeason);
   const related = collapseSeries(titles)
     .filter((t) => t.id !== title.id && t.seriesName !== title.seriesName && t.genres.some((g) => title.genres.includes(g)))
     .slice(0, 8);
@@ -279,8 +284,25 @@ function TitleDetails() {
         {episodes.length > 1 ? (
           <section className="mt-12">
             <h2 className="text-lg font-semibold text-foreground">Episodes</h2>
-            <ol className="mt-4 divide-y divide-border rounded-lg border border-border">
-              {episodes.map((ep) => (
+            {seasons.length > 1 ? (
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Seasons">
+                {seasons.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    role="tab"
+                    aria-selected={s === activeSeason}
+                    onClick={() => setSeason(s)}
+                    className={`shrink-0 rounded-full border px-4 py-1.5 text-sm ${s === activeSeason ? "border-primary text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Season {s}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <p className="mt-3 text-xs text-muted-foreground">Season {activeSeason} · {seasonEpisodes.length} episode{seasonEpisodes.length === 1 ? "" : "s"}</p>
+            <ol className="mt-3 divide-y divide-border rounded-lg border border-border">
+              {seasonEpisodes.map((ep) => (
                 <li key={ep.id}>
                   <Link
                     to="/title/$titleId"
@@ -297,7 +319,7 @@ function TitleDetails() {
                         height={60}
                         className="h-15 w-10 shrink-0 rounded-sm border border-border object-cover"
                       />
-                      <span className="min-w-0 truncate">S{ep.season ?? 1} E{ep.episode ?? 1}{ep.episodeTitle && ep.episodeTitle !== ep.name ? ` · ${ep.episodeTitle}` : ""}</span>
+                      <span className="min-w-0 truncate">Episode {ep.episode ?? 1}{ep.episodeTitle && ep.episodeTitle !== ep.name ? ` · ${ep.episodeTitle}` : ""}</span>
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{ep.runtime}</span>
                   </Link>
