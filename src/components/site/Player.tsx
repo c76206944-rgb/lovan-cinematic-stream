@@ -55,6 +55,17 @@ export function Player({
   const [audioList, setAudioList] = useState<AudioOption[]>([]);
   const [pictureOpen, setPictureOpen] = useState(false);
   const [picture, setPicture] = useState<PictureMode>("normal");
+  // Controls fade out while playing so the film fills a clean screen; a tap brings them back.
+  const [shown, setShown] = useState(true);
+  const hideTimer = useRef<number | null>(null);
+  const wake = () => {
+    setShown(true);
+    if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => {
+      if (videoRef.current && !videoRef.current.paused) setShown(false);
+    }, 3000);
+  };
+  useEffect(() => () => { if (hideTimer.current) window.clearTimeout(hideTimer.current); }, []);
   useEffect(() => {
     const saved = localStorage.getItem("lovan-picture") as PictureMode | null;
     if (saved && saved in PICTURE) setPicture(saved);
@@ -216,7 +227,8 @@ export function Player({
       ref={boxRef}
       data-no-ads="true"
       onClick={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => { e.stopPropagation(); wake(); }}
+      onPointerMove={wake}
       onTouchStart={(e) => e.stopPropagation()}
       className="relative isolate z-40 bg-black"
     >
@@ -243,7 +255,8 @@ export function Player({
               setRemaining(left <= 60 ? Math.ceil(left) : null);
             }
           }}
-          onPause={(e) => report(e.currentTarget, true)}
+          onPause={(e) => { report(e.currentTarget, true); setShown(true); }}
+          onPlay={wake}
           onEnded={(e) => {
             report(e.currentTarget, true);
             if (next && !skipNext) next.play();
@@ -279,13 +292,13 @@ export function Player({
         </p>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
+      <div className={`pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2 transition-opacity duration-300 motion-reduce:transition-none sm:p-3 ${shown || speedOpen || subOpen || audioOpen || pictureOpen ? "opacity-100" : "invisible opacity-0"}`}>
         <button type="button" onClick={() => void leave()} className={`pointer-events-auto ${chip}`}>
           <ArrowLeft className="size-4" strokeWidth={1.5} />
           Back
         </button>
-        <div className="pointer-events-auto flex flex-col items-end gap-2">
-          <div className="flex gap-2">
+        <div className="pointer-events-auto flex min-w-0 flex-col items-end gap-2">
+          <div className="flex flex-wrap justify-end gap-1.5">
             {tracks.length > 0 ? (
               <button
                 type="button"
@@ -314,7 +327,7 @@ export function Player({
               {speed}x
             </button>
             <button type="button" onClick={() => setFill((v) => !v)} aria-pressed={fill} className={chip}>
-              {fill ? "Fill (subtitles kept)" : "Fit"}
+              {fill ? "Fill" : "Fit"}
             </button>
             <button type="button" onClick={() => void goFullscreen()} aria-label="Full screen" className={chip}>
               <Maximize2 className="size-4" strokeWidth={1.5} />
