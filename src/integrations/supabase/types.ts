@@ -224,6 +224,27 @@ export type Database = {
         }
         Relationships: []
       }
+      site_announcements: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       title_comments: {
         Row: {
           author_name: string

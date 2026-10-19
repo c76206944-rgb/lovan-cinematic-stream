@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeading } from "@/components/site/TitleGrid";
 import { listOffline, openForPlayback, removeOffline, type OfflineItem } from "@/lib/offline-store";
+import { Player } from "@/components/site/Player";
 
 export const Route = createFileRoute("/downloads")({
   head: () => ({
@@ -40,16 +41,9 @@ function DownloadsPage() {
       />
       {err ? <p className="mb-4 text-sm text-primary">{err}</p> : null}
       {playing ? (
-        <video
-          key={playing.id}
-          src={playing.url}
-          controls
-          autoPlay
-          controlsList="nodownload noremoteplayback"
-          disablePictureInPicture
-          onContextMenu={(e) => e.preventDefault()}
-          className="mb-8 aspect-video w-full rounded-lg bg-surface"
-        />
+        <div className="mb-8 overflow-hidden rounded-lg">
+          <Player key={playing.id} src={playing.url} onExit={() => setPlaying(null)} />
+        </div>
       ) : null}
       {items === null ? (
         <p className="text-sm text-muted-foreground">Loading.</p>
