@@ -34,6 +34,7 @@ import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as TitleTitleIdRouteImport } from './routes/title.$titleId'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin_.analytics'
+import { Route as AuthenticatedAdminAnnouncementsRouteImport } from './routes/_authenticated/admin_.announcements'
 import { Route as AuthenticatedAdminBulkRouteImport } from './routes/_authenticated/admin_.bulk'
 import { Route as AuthenticatedAdminCatalogRouteImport } from './routes/_authenticated/admin_.catalog'
 import { Route as AuthenticatedAdminDiagnosticsRouteImport } from './routes/_authenticated/admin_.diagnostics'
@@ -166,6 +167,12 @@ const AuthenticatedAdminAnalyticsRoute =
     path: '/admin/analytics',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAnnouncementsRoute =
+  AuthenticatedAdminAnnouncementsRouteImport.update({
+    id: '/admin_/announcements',
+    path: '/admin/announcements',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminBulkRoute = AuthenticatedAdminBulkRouteImport.update({
   id: '/admin_/bulk',
   path: '/admin/bulk',
@@ -226,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/title/$titleId': typeof TitleTitleIdRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/bulk': typeof AuthenticatedAdminBulkRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
   '/admin/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
@@ -258,6 +266,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/title/$titleId': typeof TitleTitleIdRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/bulk': typeof AuthenticatedAdminBulkRoute
   '/admin/catalog': typeof AuthenticatedAdminCatalogRoute
   '/admin/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
@@ -292,6 +301,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/title/$titleId': typeof TitleTitleIdRoute
   '/_authenticated/admin_/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin_/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/_authenticated/admin_/bulk': typeof AuthenticatedAdminBulkRoute
   '/_authenticated/admin_/catalog': typeof AuthenticatedAdminCatalogRoute
   '/_authenticated/admin_/diagnostics': typeof AuthenticatedAdminDiagnosticsRoute
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/title/$titleId'
     | '/admin/analytics'
+    | '/admin/announcements'
     | '/admin/bulk'
     | '/admin/catalog'
     | '/admin/diagnostics'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/title/$titleId'
     | '/admin/analytics'
+    | '/admin/announcements'
     | '/admin/bulk'
     | '/admin/catalog'
     | '/admin/diagnostics'
@@ -391,6 +403,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/title/$titleId'
     | '/_authenticated/admin_/analytics'
+    | '/_authenticated/admin_/announcements'
     | '/_authenticated/admin_/bulk'
     | '/_authenticated/admin_/catalog'
     | '/_authenticated/admin_/diagnostics'
@@ -603,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin_/announcements': {
+      id: '/_authenticated/admin_/announcements'
+      path: '/admin/announcements'
+      fullPath: '/admin/announcements'
+      preLoaderRoute: typeof AuthenticatedAdminAnnouncementsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin_/bulk': {
       id: '/_authenticated/admin_/bulk'
       path: '/admin/bulk'
@@ -651,6 +671,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminAnnouncementsRoute: typeof AuthenticatedAdminAnnouncementsRoute
   AuthenticatedAdminBulkRoute: typeof AuthenticatedAdminBulkRoute
   AuthenticatedAdminCatalogRoute: typeof AuthenticatedAdminCatalogRoute
   AuthenticatedAdminDiagnosticsRoute: typeof AuthenticatedAdminDiagnosticsRoute
@@ -661,6 +682,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminAnnouncementsRoute: AuthenticatedAdminAnnouncementsRoute,
   AuthenticatedAdminBulkRoute: AuthenticatedAdminBulkRoute,
   AuthenticatedAdminCatalogRoute: AuthenticatedAdminCatalogRoute,
   AuthenticatedAdminDiagnosticsRoute: AuthenticatedAdminDiagnosticsRoute,
