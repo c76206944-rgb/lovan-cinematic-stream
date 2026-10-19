@@ -6,6 +6,7 @@ const tabs = [
   { to: "/admin/catalog", label: "Catalogue" },
   { to: "/admin/lists", label: "Lists" },
   { to: "/admin/requests", label: "Requests" },
+  { to: "/admin/announcements", label: "Announcements" },
   { to: "/admin/analytics", label: "Analytics" },
   { to: "/admin/diagnostics", label: "Ad diagnostics" },
 ] as const;

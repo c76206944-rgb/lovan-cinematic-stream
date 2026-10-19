@@ -15,6 +15,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Header, MobileNav } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { UploadDock } from "@/components/site/UploadDock";
+import { AnnouncementBar } from "@/components/site/AnnouncementBar";
 import { Toaster } from "@/components/ui/sonner";
 import { loadMultitag, setStaffMode, onAdStateChange, clearAdsForAuth } from "@/lib/ads";
 import { useRouterState } from "@tanstack/react-router";
@@ -229,6 +230,7 @@ function AppFrame() {
   return (
     <div className="flex min-h-dvh flex-col overflow-x-clip">
       <Header />
+      {pathname.startsWith("/admin") || pathname.startsWith("/auth") ? null : <AnnouncementBar />}
       <main className="flex-1">
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
