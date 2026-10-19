@@ -78,6 +78,13 @@
       "when": 1791774796149,
       "tag": "0010_title_ratings",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792438643821,
+      "tag": "0011_site_announcements",
+      "breakpoints": true
     }
   ]
 }
