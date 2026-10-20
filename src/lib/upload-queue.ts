@@ -150,6 +150,30 @@ const unpersist = (id: string) => store((s) => s.delete(id));
 function emit() {
   jobs = [...jobs];
   listeners.forEach((l) => l());
+  syncWakeLock();
+}
+
+/* ---------- keep the screen and computer awake while uploading ---------- */
+type Sentinel = { released: boolean; release: () => Promise<void> };
+let wakeLock: Sentinel | null = null;
+let wakePending = false;
+
+function syncWakeLock() {
+  if (typeof navigator === "undefined") return;
+  const wl = (navigator as unknown as { wakeLock?: { request: (t: "screen") => Promise<Sentinel> } }).wakeLock;
+  if (!wl) return;
+  const busy = jobs.some((j) => j.state === "uploading" || j.state === "saving" || j.state === "waiting");
+  if (busy) {
+    if ((wakeLock && !wakeLock.released) || wakePending || document.visibilityState !== "visible") return;
+    wakePending = true;
+    wl.request("screen")
+      .then((s) => { wakeLock = s; })
+      .catch(() => {})
+      .finally(() => { wakePending = false; });
+  } else if (wakeLock && !wakeLock.released) {
+    void wakeLock.release().catch(() => {});
+    wakeLock = null;
+  }
 }
 
 /* ---------- notifications ---------- */
@@ -539,7 +563,7 @@ if (typeof window !== "undefined") {
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") void requestSync();
-    else pump();
+    else { pump(); syncWakeLock(); }
   });
   window.addEventListener("online", () => {
     jobs.filter((j) => j.state === "failed").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
