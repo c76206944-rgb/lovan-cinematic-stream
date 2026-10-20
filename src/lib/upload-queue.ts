@@ -563,7 +563,7 @@ if (typeof window !== "undefined") {
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") void requestSync();
-    else pump();
+    else { pump(); syncWakeLock(); }
   });
   window.addEventListener("online", () => {
     jobs.filter((j) => j.state === "failed").forEach((j) => patch(j.id, { state: "waiting", message: "Waiting" }));
