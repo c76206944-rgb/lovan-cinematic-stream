@@ -35,6 +35,10 @@ export const getOfflineVideoUrl = createServerFn({ method: "POST" })
     if (!row || !row.published || row.archived || !row.video_path || !row.offline_allowed) {
       throw new Error("This title is not available offline.");
     }
+    if (row.video_path.startsWith("r2/")) {
+      const r2 = await import("./r2.server");
+      return { url: await r2.presign("GET", r2.r2Key(row.video_path), 600) };
+    }
     const { data: signed, error } = await supabaseAdmin.storage
       .from("media")
       .createSignedUrl(row.video_path, 600);
