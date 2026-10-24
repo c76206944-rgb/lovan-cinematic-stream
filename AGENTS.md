@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Resolve authentication and staff status once in the root account provider; repeated per-component lookups can stall signed-in viewer pages.
+- New video uploads go to Cloudflare R2 when its secrets exist; catalogue stores them as `r2/videos/...` and playback/downloads use short-lived signed links from `src/lib/r2.server.ts`. Why: zero streaming bandwidth cost while keeping files private.

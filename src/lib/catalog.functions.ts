@@ -53,7 +53,7 @@ const TitleInput = z
     ad_placements: z.array(z.enum(["pre_roll", "mid_roll", "post_roll", "banner", "sponsored_card"])).max(5),
     ad_cues: z.string().trim().max(500).default(""),
     ad_notes: z.string().trim().max(2000),
-    video_path: z.string().regex(/^videos\/[A-Za-z0-9._-]+$/).nullable().optional(),
+    video_path: z.string().regex(/^(r2\/)?videos\/[A-Za-z0-9._-]+$/).nullable().optional(),
     poster_url: z.string().regex(/^posters\/[A-Za-z0-9._-]+$/).nullable().optional(),
     offline_allowed: z.boolean().optional(),
     upload_key: z.string().uuid().optional(),
@@ -64,6 +64,12 @@ const TitleInput = z
   });
 
 async function objectInfo(context: Ctx, path: string) {
+  if (path.startsWith("r2/")) {
+    const r2 = await import("./r2.server");
+    const info = await r2.r2Head(r2.r2Key(path));
+    if (!info) throw new Error(`Uploaded file not found: ${path}`);
+    return info;
+  }
   const { data, error } = await context.supabase.storage.from("media").info(path);
   if (error || !data) throw new Error(`Uploaded file not found: ${path}`);
   return {
@@ -90,7 +96,13 @@ async function posterHead(context: Ctx, path: string) {
 }
 
 async function removeQuietly(context: Ctx, paths: (string | null | undefined)[]) {
-  const clean = paths.filter((p): p is string => Boolean(p));
+  const all = paths.filter((p): p is string => Boolean(p));
+  const r2Paths = all.filter((p) => p.startsWith("r2/"));
+  if (r2Paths.length) {
+    const r2 = await import("./r2.server");
+    await Promise.all(r2Paths.map((p) => r2.r2Delete(r2.r2Key(p)).catch(() => undefined)));
+  }
+  const clean = all.filter((p) => !p.startsWith("r2/"));
   if (clean.length) await context.supabase.storage.from("media").remove(clean);
 }
 
@@ -124,7 +136,7 @@ export const saveTitle = createServerFn({ method: "POST" })
     }
 
     // Security checks stay enforced: files must live in the expected private folders.
-    if (data.video_path && !/^videos\/[\w.\-]+$/.test(data.video_path)) throw new Error("Video path not allowed.");
+    if (data.video_path && !/^(r2\/)?videos\/[\w.\-]+$/.test(data.video_path)) throw new Error("Video path not allowed.");
     if (data.poster_url && !/^posters\/[\w.\-]+$/.test(data.poster_url)) throw new Error("Poster path not allowed.");
     // Recoverable metadata issues become warnings instead of errors.
     const warnings: string[] = [];
@@ -385,13 +397,24 @@ export const verifyUploadedSize = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
       .object({
-        path: z.string().regex(/^videos\/[A-Za-z0-9._-]+$/, "Invalid file path."),
+        path: z.string().regex(/^(r2\/)?videos\/[A-Za-z0-9._-]+$/, "Invalid file path."),
         expectedBytes: z.number().int().positive(),
       })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
     await assertStaff(context);
+    if (data.path.startsWith("r2/")) {
+      const r2 = await import("./r2.server");
+      const key = r2.r2Key(data.path);
+      const head = await r2.r2Head(key);
+      if (!head) throw new Error("The uploaded video could not be found in storage. Upload it again.");
+      if (head.size !== data.expectedBytes) {
+        await r2.r2Delete(key).catch(() => undefined);
+        throw new Error(sizeMismatchMessage(head.size, data.expectedBytes));
+      }
+      return { ok: true as const, storedBytes: head.size };
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Storage can take a moment to list a finished upload, so look a few times before giving up.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -410,4 +433,76 @@ export const verifyUploadedSize = createServerFn({ method: "POST" })
       throw new Error(sizeMismatchMessage(stored, data.expectedBytes));
     }
     return { ok: true as const, storedBytes: stored };
+  });
+
+/* ---------- Cloudflare R2 video uploads (private bucket, signed links) ---------- */
+
+const R2Path = z.string().regex(/^r2\/videos\/[A-Za-z0-9._-]+$/, "Invalid file path.");
+
+export const getVideoStorage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertStaff(context);
+    const r2 = await import("./r2.server");
+    return { r2: r2.r2Configured() };
+  });
+
+export const startR2Upload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ path: R2Path, contentType: z.string().max(100) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const r2 = await import("./r2.server");
+    const uploadId = await r2.r2StartMultipart(r2.r2Key(data.path), data.contentType || "video/mp4");
+    return { uploadId };
+  });
+
+export const signR2Parts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      path: R2Path,
+      uploadId: z.string().min(1).max(1024),
+      partNumbers: z.array(z.number().int().min(1).max(10000)).min(1).max(50),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const r2 = await import("./r2.server");
+    const key = r2.r2Key(data.path);
+    const urls = await Promise.all(
+      data.partNumbers.map(async (n) => ({
+        partNumber: n,
+        url: await r2.presign("PUT", key, 60 * 60 * 6, { partNumber: String(n), uploadId: data.uploadId }),
+      })),
+    );
+    return { urls };
+  });
+
+export const completeR2Upload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({
+      path: R2Path,
+      uploadId: z.string().min(1).max(1024),
+      parts: z.array(z.object({ partNumber: z.number().int().min(1).max(10000), etag: z.string().min(1).max(200) })).min(1).max(10000),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const r2 = await import("./r2.server");
+    await r2.r2CompleteMultipart(r2.r2Key(data.path), data.uploadId, data.parts);
+    return { ok: true as const };
+  });
+
+export const abortR2Upload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ path: R2Path, uploadId: z.string().min(1).max(1024) }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+    const r2 = await import("./r2.server");
+    await r2.r2AbortMultipart(r2.r2Key(data.path), data.uploadId);
+    return { ok: true as const };
   });

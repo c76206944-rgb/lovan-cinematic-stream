@@ -90,6 +90,10 @@ export const getPlaybackUrl = createServerFn({ method: "POST" })
       if (!row || !row.published || row.archived || !row.video_path) throw new Error("This title cannot be played yet.");
       // Free open films are hosted by their makers and stream straight from there.
       if (/^https:\/\//.test(row.video_path)) return { url: row.video_path };
+    if (row.video_path.startsWith("r2/")) {
+      const r2 = await import("./r2.server");
+      return { url: await r2.presign("GET", r2.r2Key(row.video_path), 60 * 60 * 3) };
+    }
       const { data: s, error } = await supabaseAdmin.storage.from("media").createSignedUrl(row.video_path, 60 * 60 * 3);
       if (error || !s) throw new Error("Could not start playback.");
       return { url: s.signedUrl };

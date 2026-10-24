@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { loadTus } from "@/lib/tus-browser";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { saveTitle, createUploadUrl } from "@/lib/catalog.functions";
+import { saveTitle, createUploadUrl, getVideoStorage, startR2Upload, signR2Parts, completeR2Upload } from "@/lib/catalog.functions";
 
 export type JobState = "waiting" | "uploading" | "saving" | "paused" | "done" | "failed";
 
@@ -337,6 +337,80 @@ function pump() {
   jobs.filter((j) => j.state === "waiting").slice(0, Math.max(free, 0)).forEach((j) => void run(j));
 }
 
+/* ---------- Cloudflare R2 (private bucket) ---------- */
+let r2Check: Promise<boolean> | null = null;
+function useR2() {
+  if (!r2Check) {
+    r2Check = getVideoStorage().then((r) => r.r2).catch(() => {
+      r2Check = null;
+      return false;
+    });
+  }
+  return r2Check;
+}
+
+const R2_PART = 25 * 1024 * 1024;
+
+function putPart(url: string, blob: Blob, onProgress: (sent: number) => void, register: (xhr: XMLHttpRequest) => void) {
+  return new Promise<string>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.upload.onprogress = (e) => onProgress(e.loaded);
+    xhr.onload = () => {
+      const etag = xhr.getResponseHeader("ETag");
+      if (xhr.status >= 200 && xhr.status < 300 && etag) return resolve(etag);
+      if (xhr.status >= 200 && xhr.status < 300) return reject(new Error("Cloudflare bucket is missing its CORS setting (ETag not exposed)."));
+      reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText.slice(0, 200)}`));
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload. Press Retry."));
+    xhr.onabort = () => reject(new Error("Upload cancelled."));
+    register(xhr);
+    xhr.send(blob);
+  });
+}
+
+async function uploadToR2(job: Job, path: string): Promise<string> {
+  const file = job.file;
+  await getValidSessionToken();
+  const { uploadId } = await startR2Upload({ data: { path, contentType: file.type || "video/mp4" } });
+  const count = Math.max(1, Math.ceil(file.size / R2_PART));
+  const done = new Array<number>(count + 1).fill(0);
+  const parts: { partNumber: number; etag: string }[] = [];
+  let cancelled = false;
+  let current: XMLHttpRequest | null = null;
+  active.set(job.id, { abort: () => { cancelled = true; current?.abort(); } });
+  const report = () => {
+    const sent = done.reduce((a, b) => a + b, 0);
+    const pct = Math.round((sent / file.size) * 100);
+    const cur = jobs.find((j) => j.id === job.id);
+    if (cur?.state === "uploading") patch(job.id, { progress: pct, message: `Uploading ${pct}%` }, pct % 5 === 0);
+  };
+  for (let start = 1; start <= count; start += 20) {
+    const nums = Array.from({ length: Math.min(20, count - start + 1) }, (_, i) => start + i);
+    const { urls } = await signR2Parts({ data: { path, uploadId, partNumbers: nums } });
+    for (const { partNumber, url } of urls) {
+      const blob = file.slice((partNumber - 1) * R2_PART, Math.min(partNumber * R2_PART, file.size));
+      let etag = "";
+      for (let attempt = 0; ; attempt += 1) {
+        if (cancelled) throw new Error("Upload cancelled.");
+        try {
+          etag = await putPart(url, blob, (s) => { done[partNumber] = s; report(); }, (x) => { current = x; });
+          break;
+        } catch (err) {
+          done[partNumber] = 0;
+          if (cancelled || attempt >= 5 || /CORS/.test(String(err))) throw err;
+          await new Promise((r) => setTimeout(r, [1000, 3000, 8000, 15000, 30000][attempt]));
+        }
+      }
+      done[partNumber] = blob.size;
+      parts.push({ partNumber, etag });
+    }
+  }
+  await completeR2Upload({ data: { path, uploadId, parts } });
+  active.delete(job.id);
+  return path;
+}
+
 async function upload(job: Job): Promise<string> {
   if (!job.file || job.file.size === 0) {
     throw new Error("File is empty (0 bytes). Please choose a valid video file.");
@@ -344,6 +418,8 @@ async function upload(job: Job): Promise<string> {
 
   const safe = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+/, "") || "video";
   const path = `videos/${job.id.slice(0, 8)}-${safe}`;
+
+  if (await useR2()) return uploadToR2(job, `r2/${path}`);
   
   if (USE_SIGNED_UPLOADS) {
     const anonKey = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
