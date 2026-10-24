@@ -50,7 +50,7 @@ export async function presign(method: "GET" | "PUT" | "DELETE", key: string, sec
 
 async function call(method: string, key: string, query: Record<string, string> = {}, body?: string) {
   const { client } = config();
-  const res = await client.fetch(objectUrl(key, query).toString(), { method, body });
+  const res = await client.fetch(objectUrl(key, query).toString(), { method, body: body ?? null });
   if (!res.ok && res.status !== 404) {
     throw new Error(`Cloudflare storage error ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
