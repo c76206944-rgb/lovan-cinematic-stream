@@ -11,7 +11,7 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // The database returns at most 1000 rows per request, so read the catalogue in pages.
     const PAGE = 1000;
-    const rows = [];
+    const rows: any[] = [];
     for (let from = 0; from < 20000; from += PAGE) {
       const { data, error } = await supabaseAdmin
         .from("catalog_titles")
