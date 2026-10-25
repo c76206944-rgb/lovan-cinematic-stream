@@ -94,8 +94,19 @@ function CatalogPage() {
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from("catalog_titles").select("*").order("updated_at", { ascending: false });
-    setRows((data ?? []) as Row[]);
+    const all: Row[] = [];
+    for (let from = 0; from < 20000; from += 1000) {
+      const { data, error } = await supabase
+        .from("catalog_titles")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, from + 999);
+      if (error) break;
+      all.push(...((data ?? []) as Row[]));
+      if (!data || data.length < 1000) break;
+    }
+    setRows(all);
   }, []);
 
   useEffect(() => {
