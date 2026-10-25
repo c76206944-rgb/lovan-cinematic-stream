@@ -9,18 +9,26 @@ const fields =
 export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Promise<Title[]> => {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
-      .from("catalog_titles")
-      .select(fields)
-      .eq("published", true)
-      .eq("archived", false)
-      .order("created_at", { ascending: false })
-      .limit(2000);
-    if (error) {
-      console.warn("[getCatalog] Database query warning:", error.message);
-      return [];
+    // The database returns at most 1000 rows per request, so read the catalogue in pages.
+    const PAGE = 1000;
+    const rows: any[] = [];
+    for (let from = 0; from < 20000; from += PAGE) {
+      const { data, error } = await supabaseAdmin
+        .from("catalog_titles")
+        .select(fields)
+        .eq("published", true)
+        .eq("archived", false)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.warn("[getCatalog] Database query warning:", error.message);
+        if (!rows.length) return [];
+        break;
+      }
+      rows.push(...(data ?? []));
+      if (!data || data.length < PAGE) break;
     }
-    const rows = data ?? [];
     // Episodes without their own poster use the poster of another episode in the same series.
     const seriesPoster = new Map<string, { path: string; rank: number }>();
     for (const r of rows) {
