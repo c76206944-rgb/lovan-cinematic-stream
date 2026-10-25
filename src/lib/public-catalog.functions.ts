@@ -47,9 +47,12 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
     const paths = rows.map((r) => r.poster_url).filter((p): p is string => Boolean(p) && !/^https:\/\//.test(p!));
     const signed = new Map<string, string>();
     for (const r of rows) if (r.poster_url && /^https:\/\//.test(r.poster_url)) signed.set(r.poster_url, r.poster_url);
-    if (paths.length) {
+    // Storage accepts at most 1000 paths per request, so sign posters in chunks.
+    const unique = Array.from(new Set(paths));
+    for (let i = 0; i < unique.length; i += 200) {
       try {
-        const { data: urls } = await supabaseAdmin.storage.from("media").createSignedUrls(paths, 60 * 60 * 6);
+        const { data: urls, error } = await supabaseAdmin.storage.from("media").createSignedUrls(unique.slice(i, i + 200), 60 * 60 * 6);
+        if (error) console.warn("[getCatalog] Storage signed URLs warning:", error.message);
         for (const u of urls ?? []) if (u.path && u.signedUrl) signed.set(u.path, u.signedUrl);
       } catch (storageError) {
         console.warn("[getCatalog] Storage signed URLs warning:", storageError);
