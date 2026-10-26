@@ -138,3 +138,17 @@
 @utility fade-bottom {
   mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
 }
+
+/* Subtitles: rounded dark pill, clean light text, lifted above the controls. */
+video::cue {
+  background-color: oklch(0.2 0 0 / 0.85);
+  color: oklch(0.98 0 0);
+  font-family: var(--font-sans);
+  font-size: clamp(14px, 2.6vw, 26px);
+  line-height: 1.35;
+  border-radius: 6px;
+  padding: 0.15em 0.5em;
+}
+video::-webkit-media-text-track-display {
+  transform: translateY(-6%);
+}
