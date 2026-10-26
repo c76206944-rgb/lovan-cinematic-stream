@@ -145,7 +145,11 @@ export function Player({
     void Promise.all(
       tracks.map(async (t) => {
         try {
-          const text = await (await fetch(t.url)).text();
+          const raw = await (await fetch(t.url)).text();
+          // Lift cues one line off the bottom so phone control bars never cover them.
+          const text = raw.replace(/^(\s*[\d:.]+\s+-->\s+[\d:.]+)([^\n]*)$/gm, (m, time: string, rest: string) =>
+            /\bline:/.test(rest) ? m : `${time}${rest} line:-2`,
+          );
           const url = URL.createObjectURL(new Blob([text], { type: "text/vtt" }));
           made.push(url);
           return [t.lang, url] as const;
@@ -293,7 +297,7 @@ export function Player({
         </p>
       ) : null}
 
-      <div className={`pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2 transition-opacity duration-300 motion-reduce:transition-none sm:p-3 ${shown || speedOpen || subOpen || audioOpen || pictureOpen ? "opacity-100" : "invisible opacity-0"}`}>
+      <div style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))", paddingLeft: "max(0.5rem, env(safe-area-inset-left))", paddingRight: "max(0.5rem, env(safe-area-inset-right))" }} className={`pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2 transition-opacity duration-300 motion-reduce:transition-none sm:p-3 ${shown || speedOpen || subOpen || audioOpen || pictureOpen ? "opacity-100" : "invisible opacity-0"}`}>
         <button type="button" onClick={() => void leave()} className={`pointer-events-auto ${chip}`}>
           <ArrowLeft className="size-4" strokeWidth={1.5} />
           Back
