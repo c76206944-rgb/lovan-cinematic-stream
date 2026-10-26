@@ -4,6 +4,7 @@ import { Play } from "lucide-react";
 import { buildRails, collapseSeries } from "@/data/titles";
 import { Rail } from "@/components/site/Rail";
 import { AdSlot } from "@/components/site/AdSlot";
+import { ComingSoon } from "@/components/site/ComingSoon";
 import { useCatalog } from "@/lib/use-catalog";
 import { useCollections, useProgress } from "@/lib/viewer";
 import { useRatingStats } from "@/components/site/TitleRating";
@@ -98,6 +99,7 @@ function HomePage() {
           <Fragment key={rail.id}>
             <Rail rail={rail} />
             {i === 1 ? <AdSlot placement="banner" /> : null}
+            {i === 0 ? <ComingSoon /> : null}
           </Fragment>
         ))}
       </div>
