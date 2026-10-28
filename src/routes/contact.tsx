@@ -4,6 +4,8 @@ import { Prose } from "@/components/site/Prose";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Contact | LOVAN" },
       { name: "description", content: "Reach the LOVAN team about viewing, licensing or press." },
       { property: "og:title", content: "Contact | LOVAN" },

@@ -4,6 +4,8 @@ import { Prose } from "@/components/site/Prose";
 export const Route = createFileRoute("/cookie-policy")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Cookie Policy | LOVAN" },
       { name: "description", content: "How LOVAN uses cookies and similar technologies." },
       { property: "og:title", content: "Cookie Policy | LOVAN" },

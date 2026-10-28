@@ -6,6 +6,8 @@ import { PageHeading, TitleGrid } from "@/components/site/TitleGrid";
 export const Route = createFileRoute("/movies")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Movies | LOVAN" },
       {
         name: "description",

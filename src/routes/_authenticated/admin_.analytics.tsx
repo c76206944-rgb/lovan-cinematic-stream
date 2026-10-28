@@ -8,6 +8,8 @@ import { getCatalogAnalytics } from "@/lib/catalog.functions";
 export const Route = createFileRoute("/_authenticated/admin_/analytics")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Studio analytics | LOVAN" },
       { name: "description", content: "Catalogue counts, publication status, storage and upload activity." },
       { property: "og:title", content: "Studio analytics | LOVAN" },
