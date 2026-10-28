@@ -11,6 +11,7 @@ export function offlineShellPlugin(): Plugin {
     generateBundle(_options, bundle) {
       const entry = Object.values(bundle).find((item) => item.type === "chunk" && item.facadeModuleId?.replaceAll("\\", "/").endsWith("/src/offline-entry.tsx"));
       if (!entry || entry.type !== "chunk") throw new Error("LOVAN offline playback chunk is missing.");
+      if (!entry.exports.includes("mountOfflineApp")) throw new Error("LOVAN offline playback mount export is missing.");
       const css = new Set<string>();
       const visited = new Set<string>();
       const collect = (file: string) => {

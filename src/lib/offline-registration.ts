@@ -4,7 +4,8 @@ import { refuseOfflineWorker } from "./offline-policy";
 export async function registerOfflineApp(): Promise<void> {
   // Keep offline playback in a normal split chunk, not a second Start entry.
   if (document.getElementById("offline-root")) {
-    await import("../offline-entry");
+    const { mountOfflineApp } = await import("../offline-entry");
+    mountOfflineApp();
     return;
   }
   if (!("serviceWorker" in navigator)) return;
