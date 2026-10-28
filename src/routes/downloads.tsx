@@ -1,8 +1,5 @@
-import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { PageHeading } from "@/components/site/TitleGrid";
-import { listOffline, openForPlayback, removeOffline, type OfflineItem } from "@/lib/offline-store";
-import { Player } from "@/components/site/Player";
+import { DownloadsView } from "@/components/site/DownloadsView";
 
 export const Route = createFileRoute("/downloads")({
   head: () => ({
@@ -20,63 +17,5 @@ export const Route = createFileRoute("/downloads")({
 });
 
 function DownloadsPage() {
-  const [items, setItems] = useState<OfflineItem[] | null>(null);
-  const [playing, setPlaying] = useState<{ id: string; url: string } | null>(null);
-
-  const load = () => void listOffline().then(setItems).catch(() => setItems([]));
-  useEffect(load, []);
-  useEffect(() => () => { if (playing) URL.revokeObjectURL(playing.url); }, [playing]);
-
-  const [err, setErr] = useState<string | null>(null);
-  const play = (item: OfflineItem) =>
-    void openForPlayback(item.id)
-      .then((url) => { setErr(null); setPlaying({ id: item.id, url }); })
-      .catch((e: unknown) => { setErr(e instanceof Error ? e.message : "Could not play this download."); load(); });
-
-  return (
-    <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6">
-      <PageHeading
-        title="Downloads"
-        description="Saved titles play here without a connection. They are stored encrypted inside LOVAN on this device, stay until you remove them, and cannot be exported or shared."
-      />
-      {err ? <p className="mb-4 text-sm text-primary">{err}</p> : null}
-      {playing ? (
-        <div className="mb-8 overflow-hidden rounded-lg">
-          <Player key={playing.id} src={playing.url} onExit={() => setPlaying(null)} />
-        </div>
-      ) : null}
-      {items === null ? (
-        <p className="text-sm text-muted-foreground">Loading.</p>
-      ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nothing saved yet. Open a title and choose Watch offline.
-        </p>
-      ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
-          {items.map((item) => (
-            <li key={item.id} className="flex items-center justify-between gap-4 p-4">
-              <div>
-                <p className="text-sm text-foreground">{item.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(item.bytes / 1024 / 1024).toFixed(0)} MB · saved {new Date(item.savedAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => play(item)} className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground">
-                  Play
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void removeOffline(item.id).then(() => { setPlaying(null); load(); })}
-                  className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground"
-                >
-                  Remove
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+  return <DownloadsView />;
 }
