@@ -20,6 +20,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { loadMultitag, setStaffMode, onAdStateChange, clearAdsForAuth } from "@/lib/ads";
 import { useRouterState } from "@tanstack/react-router";
 import { AccountProvider, useAccount } from "@/lib/use-account";
+import { registerOfflineApp } from "@/lib/offline-registration";
 
 
 function NotFoundComponent() {
@@ -207,15 +208,7 @@ function AppFrame() {
   }, [account.ready, account.staff]);
 
   useEffect(() => {
-    if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
-    const inFrame = window.self !== window.top;
-    const preview = /id-preview--|lovableproject\.com/.test(location.hostname);
-    if (inFrame || preview) {
-      void navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => void r.unregister()));
-      return;
-    }
-    const url = "/sw.js";
-    void navigator.serviceWorker.register(url).catch(() => {});
+    void registerOfflineApp().catch(() => {});
   }, []);
 
   useEffect(() => {

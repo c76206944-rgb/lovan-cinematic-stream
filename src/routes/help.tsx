@@ -8,6 +8,8 @@ export const Route = createFileRoute("/help")({
       { name: "description", content: "Answers about playback, plans, devices and availability on LOVAN." },
       { property: "og:title", content: "Help | LOVAN" },
       { property: "og:description", content: "Answers about playback, plans and availability." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: () => (
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/help")({
         },
         {
           heading: "Can I watch offline?",
-          body: "Yes, for titles marked for offline viewing. Saved copies play only inside LOVAN.",
+          body: "Yes. Save any uploaded film or episode while connected, then open LOVAN to play your downloads without data. Downloads stay on this device until you remove them.",
         },
         {
           heading: "Playback problems",

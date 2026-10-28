@@ -6,6 +6,7 @@ type FullscreenVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void }
 type FullscreenBox = HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> };
 
 export type SubtitleTrack = { label: string; lang: string; url: string };
+const NO_TRACKS: SubtitleTrack[] = [];
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -25,7 +26,7 @@ type PictureMode = keyof typeof PICTURE;
  */
 export function Player({
   src,
-  tracks = [],
+  tracks = NO_TRACKS,
   onExit,
   startAt = 0,
   onProgress,

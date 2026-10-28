@@ -22,6 +22,10 @@ import {
 export const Route = createFileRoute("/_authenticated/admin_/diagnostics")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { property: "og:title", content: "Ad diagnostics | LOVAN Studio" },
+      { property: "og:description", content: "Studio view of advert zones, daily cap use and delivery errors." },
       { title: "Ad diagnostics | LOVAN Studio" },
       { name: "robots", content: "noindex" },
       { name: "description", content: "Studio view of advert zones, daily cap use and delivery errors." },

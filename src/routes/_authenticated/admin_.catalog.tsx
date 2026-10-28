@@ -18,6 +18,8 @@ export const Route = createFileRoute("/_authenticated/admin_/catalog")({
     typeof search["edit"] === "string" ? { edit: search["edit"] } : {},
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Catalogue editor | LOVAN" },
       { name: "description", content: "Edit, unpublish, archive and delete LOVAN titles." },
       { property: "og:title", content: "Catalogue editor | LOVAN" },

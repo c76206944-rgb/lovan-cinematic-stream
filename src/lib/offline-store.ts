@@ -35,9 +35,11 @@ function open(): Promise<IDBDatabase> {
 async function run<T>(store: string, mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest) {
   const db = await open();
   return new Promise<T>((resolve, reject) => {
-    const req = fn(db.transaction(store, mode).objectStore(store));
-    req.onsuccess = () => resolve(req.result as T);
-    req.onerror = () => reject(req.error);
+    const transaction = db.transaction(store, mode);
+    const req = fn(transaction.objectStore(store));
+    transaction.oncomplete = () => { db.close(); resolve(req.result as T); };
+    transaction.onabort = () => { db.close(); reject(transaction.error ?? req.error ?? new Error("Could not save this download.")); };
+    transaction.onerror = () => { db.close(); reject(transaction.error ?? req.error); };
   });
 }
 
@@ -52,6 +54,7 @@ async function deviceKey(): Promise<CryptoKey> {
 const strip = ({ iv: _iv, data: _d, ...rest }: Stored): OfflineItem => rest;
 
 export async function saveOffline(item: { id: string; name: string; blob: Blob }) {
+  if (navigator.storage?.persist) await navigator.storage.persist().catch(() => false);
   const key = await deviceKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, await item.blob.arrayBuffer());
@@ -74,21 +77,12 @@ export const removeOffline = (id: string) => run(STORE, "readwrite", (s) => s.de
 export async function getOffline(id: string): Promise<OfflineItem | undefined> {
   const row = await run<Stored | undefined>(STORE, "readonly", (s) => s.get(id));
   if (!row) return undefined;
-  if (false) {
-    await removeOffline(id);
-    return undefined;
-  }
   return strip(row);
 }
 
 export async function listOffline(): Promise<OfflineItem[]> {
   const rows = await run<Stored[]>(STORE, "readonly", (s) => s.getAll());
-  const live: OfflineItem[] = [];
-  for (const row of rows) {
-    if (false) await removeOffline(row.id);
-    else live.push(strip(row));
-  }
-  return live;
+  return rows.map(strip);
 }
 
 /** Decrypts a saved title in memory for playback. Returns a temporary in-page address. */
