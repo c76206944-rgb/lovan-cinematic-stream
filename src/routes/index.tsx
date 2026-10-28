@@ -31,14 +31,14 @@ export const Route = createFileRoute("/")({
 const sections = [
   { title: "Discover", body: "Browse by genre, country and language, or search by name, cast or director." },
   { title: "Watch", body: "Play on your phone, tablet or computer and install LOVAN as an app." },
-  { title: "Save for offline", body: "Keep approved titles on your device and watch them inside LOVAN without a connection." },
+  { title: "Save for offline", body: "Save films and episodes on your device and watch them inside LOVAN without a connection." },
   { title: "Free to watch", body: "LOVAN is free. A small number of adverts keep it running." },
 ];
 
 const faq = [
   { q: "Is LOVAN free?", a: "Yes. LOVAN is free to watch and may show a small number of adverts." },
   { q: "Which devices are supported?", a: "Any modern browser on Android, iPhone, tablets and computers." },
-  { q: "Can I download titles?", a: "Yes, for titles marked for offline viewing. Saved copies play only inside LOVAN." },
+  { q: "Can I download titles?", a: "Yes. Every uploaded film and episode can be saved for offline viewing inside LOVAN." },
   { q: "Can I ask for a title?", a: "Yes. Use Request a title at the bottom of any page." },
 ];
 

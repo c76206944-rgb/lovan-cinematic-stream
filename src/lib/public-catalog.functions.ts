@@ -77,7 +77,7 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
       episode: r.episode,
       episodeTitle: r.episode_title || (r.kind === "series" ? r.name : ""),
       hasVideo: Boolean(r.video_path),
-      canDownload: Boolean(r.video_path) && Boolean(r.offline_allowed),
+      canDownload: Boolean(r.video_path),
       addedAt: r.created_at,
       bytes: r.video_bytes ?? null,
     }));

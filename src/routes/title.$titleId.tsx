@@ -18,6 +18,7 @@ import { catalogQuery, useCatalog } from "@/lib/use-catalog";
 import { slugify, titleSlug } from "@/lib/slug";
 import { TitleRating } from "@/components/site/TitleRating";
 import { isKidsTitle, useKidsMode } from "@/lib/kids-mode";
+import { Button } from "@/components/ui/button";
 
 function formatSize(bytes: number): string {
   return bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`;
@@ -61,19 +62,22 @@ function DownloadButton({ title }: { title: ViewTitle }) {
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+    setState("idle"); setPct(0); setMsg(null);
     if (!title.canDownload) return;
-    void getOffline(title.id).then((item) => item && setState("saved"));
-  }, [title]);
+    void getOffline(title.id).then((item) => { if (active && item) setState("saved"); }).catch(() => {});
+    return () => { active = false; };
+  }, [title.id, title.canDownload]);
 
   const cls =
     "inline-flex items-center gap-2 rounded-md border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface disabled:opacity-50";
 
   if (!title.canDownload) {
     return (
-      <button type="button" disabled className={cls} title="Offline viewing is not available for this title">
+      <Button variant="outline" type="button" disabled className={cls} title="This video has not been uploaded yet">
         <Download className="size-4" strokeWidth={1.5} />
-        Not available offline
-      </button>
+        Video not uploaded yet
+      </Button>
     );
   }
   if (state === "saved") {
@@ -92,7 +96,8 @@ function DownloadButton({ title }: { title: ViewTitle }) {
     try {
       const { url } = await getUrl({ data: { id: title.id } });
       const blob = await downloadToApp(url, setPct);
-      await saveOffline({ id: title.id, name: title.name, blob });
+      const name = title.kind === "series" ? `${title.name} · S${title.season ?? 1} E${title.episode ?? 1}${title.episodeTitle && title.episodeTitle !== title.name ? ` · ${title.episodeTitle}` : ""}` : title.name;
+      await saveOffline({ id: title.id, name, blob });
       setState("saved");
     } catch (e) {
       setState("idle");
@@ -102,10 +107,10 @@ function DownloadButton({ title }: { title: ViewTitle }) {
 
   return (
     <div>
-      <button type="button" onClick={() => void start()} disabled={state === "busy"} className={cls}>
+      <Button variant="outline" type="button" onClick={() => void start()} disabled={state === "busy"} className={cls}>
         <Download className="size-4" strokeWidth={1.5} />
         {state === "busy" ? `Saving ${pct}%` : "Watch offline"}
-      </button>
+      </Button>
       {msg ? <p className="mt-1 text-xs text-destructive">{msg}</p> : null}
     </div>
   );
@@ -303,11 +308,11 @@ function TitleDetails() {
             <p className="mt-3 text-xs text-muted-foreground">Season {activeSeason} · {seasonEpisodes.length} episode{seasonEpisodes.length === 1 ? "" : "s"}</p>
             <ol className="mt-3 divide-y divide-border rounded-lg border border-border">
               {seasonEpisodes.map((ep) => (
-                <li key={ep.id}>
+                <li key={ep.id} className="flex flex-wrap items-center justify-between gap-3 pr-4 pb-3 sm:pb-0">
                   <Link
                     to="/title/$titleId"
                     params={{ titleId: ep.id }}
-                    className={`flex items-center justify-between gap-3 px-4 py-3 text-sm ${ep.id === title.id ? "text-primary" : "text-foreground hover:bg-surface"}`}
+                    className={`flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-sm ${ep.id === title.id ? "text-primary" : "text-foreground hover:bg-surface"}`}
                   >
                     <span className="flex min-w-0 items-center gap-3">
                       <img
@@ -323,6 +328,7 @@ function TitleDetails() {
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{ep.runtime}</span>
                   </Link>
+                  <div className="ml-4"><DownloadButton key={ep.id} title={ep} /></div>
                 </li>
               ))}
             </ol>

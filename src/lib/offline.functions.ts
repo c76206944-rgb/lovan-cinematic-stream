@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { offlineEligible } from "./offline-policy";
 
 const Id = z.object({ id: z.string().uuid() });
 
@@ -19,7 +20,7 @@ export const getPublicCatalogTitle = createServerFn({ method: "GET" })
       .maybeSingle();
     if (!row) return null;
     const { video_path, offline_allowed, ...rest } = row;
-    return { ...rest, hasVideo: Boolean(video_path), canDownload: Boolean(video_path) && offline_allowed };
+    return { ...rest, hasVideo: Boolean(video_path), canDownload: Boolean(video_path) };
   });
 
 export const getOfflineVideoUrl = createServerFn({ method: "POST" })
@@ -29,12 +30,13 @@ export const getOfflineVideoUrl = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("catalog_titles")
-      .select("video_path, published, archived, offline_allowed")
+      .select("video_path, published, archived")
       .eq("id", data.id)
       .maybeSingle();
-    if (!row || !row.published || row.archived || !row.video_path || !row.offline_allowed) {
+    if (!row || !offlineEligible(row) || !row.video_path) {
       throw new Error("This title is not available offline.");
     }
+    if (/^https:\/\//.test(row.video_path)) return { url: row.video_path };
     if (row.video_path.startsWith("r2/")) {
       const r2 = await import("./r2.server");
       return { url: await r2.presign("GET", r2.r2Key(row.video_path), 600) };
