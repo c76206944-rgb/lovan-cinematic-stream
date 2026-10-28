@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { Plugin } from "vite";
 
 /** Emit a static shell for a normal dynamic chunk, keeping Start's sole entry. */
@@ -22,7 +23,7 @@ export function offlineShellPlugin(): Plugin {
         chunk.imports.forEach(collect);
       };
       collect(entry.fileName);
-      const source = readFileSync(new URL("./offline.html", import.meta.url), "utf8")
+      const source = readFileSync(resolve(process.cwd(), "offline.html"), "utf8")
         .replace("/src/offline-entry.tsx", `/${entry.fileName}`)
         .replace("</head>", `${[...css].map((file) => `<link rel="stylesheet" href="/${file}" />`).join("\n")}\n</head>`);
       this.emitFile({ type: "asset", fileName: "offline.html", source });

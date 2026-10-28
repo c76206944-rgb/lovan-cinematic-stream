@@ -1,5 +1,5 @@
 # Offline viewing
-- [ ] Correct the offline entry build configuration causing the app manifest failure.
+- [x] Correct the offline entry build configuration causing the app manifest failure; retain one Start entry and test static shell emission.
 - [x] Enable downloads for every published title with an uploaded video.
 - [x] Add a preview-safe offline app that opens saved downloads without data.
 - [x] Verify local playback/removal with network disabled, eligibility/no-expiry tests, and zero preview workers.
