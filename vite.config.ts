@@ -10,7 +10,10 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   vite: {
     environments: {
-      client: { build: { rollupOptions: { input: { offline: "offline.html" } } } },
+      client: { build: {
+        rollupOptions: { input: { offline: "offline.html" } },
+        rolldownOptions: { input: { offline: "offline.html" } },
+      } },
     },
     plugins: [VitePWA({
       strategies: "generateSW",
