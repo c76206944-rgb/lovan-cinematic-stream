@@ -1,5 +1,5 @@
 # Offline viewing
-- [ ] Fix the blank cold offline opening by explicitly mounting the saved-downloads screen and verify playback with the connection disabled.
+- [x] Fix the blank offline screen with an explicit mount function; eight regression tests pass and standalone saved-video playback works with the connection disabled. Published cold reopening remains below.
 - [x] Correct the offline entry build configuration causing the app manifest failure; retain one Start entry and test static shell emission.
 - [x] Enable downloads for every published title with an uploaded video.
 - [x] Add a preview-safe offline app that opens saved downloads without data.
