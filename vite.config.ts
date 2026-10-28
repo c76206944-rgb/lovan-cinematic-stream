@@ -25,7 +25,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html}", "icon-*.png", "favicon.png"],
         globIgnores: ["**/sw.js", "**/upload-background.js"],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
-        navigateFallback: undefined,
+        navigateFallback: null,
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
