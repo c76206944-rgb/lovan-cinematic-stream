@@ -6,16 +6,11 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { VitePWA } from "vite-plugin-pwa";
+import { offlineShellPlugin } from "./offline-build";
 
 export default defineConfig({
   vite: {
-    environments: {
-      client: { build: {
-        rollupOptions: { input: { offline: "offline.html" } },
-        rolldownOptions: { input: { offline: "offline.html" } },
-      } },
-    },
-    plugins: [VitePWA({
+    plugins: [offlineShellPlugin(), VitePWA({
       strategies: "generateSW",
       filename: "sw.js",
       outDir: "dist/client",
@@ -23,6 +18,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       manifest: false,
       devOptions: { enabled: false },
+      // Generate after the client files have been written, not during SSR.
+      integration: { closeBundleOrder: "post" },
       workbox: {
         globDirectory: "dist/client",
         globPatterns: ["**/*.{js,css,html}", "icon-*.png", "favicon.png"],

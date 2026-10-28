@@ -2,6 +2,11 @@ import { refuseOfflineWorker } from "./offline-policy";
 
 /** The only app-shell worker registrar. Never cache editor previews. */
 export async function registerOfflineApp(): Promise<void> {
+  // Keep offline playback in a normal split chunk, not a second Start entry.
+  if (document.getElementById("offline-root")) {
+    await import("../offline-entry");
+    return;
+  }
   if (!("serviceWorker" in navigator)) return;
   if (refuseOfflineWorker(window.location.hostname, import.meta.env.PROD, window.self !== window.top, window.location.search)) {
     const registrations = await navigator.serviceWorker.getRegistrations();
