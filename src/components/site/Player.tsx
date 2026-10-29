@@ -59,7 +59,7 @@ export function Player({
   const [audioOpen, setAudioOpen] = useState(false);
   const [audioList, setAudioList] = useState<AudioOption[]>([]);
   const [pictureOpen, setPictureOpen] = useState(false);
-  const [picture, setPicture] = useState<PictureMode>("normal");
+  const [picture, setPicture] = useState<PictureMode>("hd");
   // Controls fade out while playing so the film fills a clean screen; a tap brings them back.
   const [shown, setShown] = useState(true);
   const hideTimer = useRef<number | null>(null);
@@ -339,9 +339,9 @@ export function Player({
             </button>
             <button
               type="button"
-              aria-pressed={picture !== "normal"}
+              aria-pressed={picture !== "normal" && picture !== "hd"}
               onClick={() => { setPictureOpen((v) => !v); setSubOpen(false); setSpeedOpen(false); setAudioOpen(false); }}
-              className={`${chip} ${picture !== "normal" ? "border-primary text-primary" : ""}`}
+              className={`${chip} ${picture !== "normal" && picture !== "hd" ? "border-primary text-primary" : ""}`}
             >
               Picture
             </button>
