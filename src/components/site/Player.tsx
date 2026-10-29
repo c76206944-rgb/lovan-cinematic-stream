@@ -295,7 +295,7 @@ export function Player({
             }, 2500);
           }}
           style={{ filter: PICTURE[picture].filter }}
-          className={`h-full w-full bg-black ${fit === "fill" ? "object-cover object-[center_30%]" : fit === "subsafe" ? "object-cover object-[center_75%]" : "object-contain"}`}
+          className={`h-full w-full bg-black ${fit === "full" ? "object-cover object-[center_100%]" : fit === "stretch" ? "object-fill" : "object-contain"}`}
         >
           {tracks.filter((t) => local[t.lang]).map((t) => (
             <track key={t.lang} kind="subtitles" src={local[t.lang]} srcLang={t.lang} label={t.label} />
