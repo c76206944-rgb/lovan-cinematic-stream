@@ -68,6 +68,7 @@ export function Player({
     }, 3000);
   };
   useEffect(() => () => { if (hideTimer.current) window.clearTimeout(hideTimer.current); }, []);
+  useEffect(() => enterPlayback(), []);
   useEffect(() => {
     const saved = localStorage.getItem("lovan-picture") as PictureMode | null;
     if (saved && saved in PICTURE) setPicture(saved);
@@ -236,6 +237,10 @@ export function Player({
       onPointerDown={(e) => { e.stopPropagation(); wake(); }}
       onPointerMove={wake}
       onTouchStart={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
       className="relative isolate z-40 bg-black"
     >
       <div className={full ? "flex h-dvh w-full items-center justify-center bg-black" : "mx-auto aspect-video w-full max-w-[1600px]"}>
