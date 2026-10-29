@@ -272,3 +272,60 @@ export function loadedZones(): string[] {
   if (typeof document === "undefined") return [];
   return ZONES.filter((z) => document.querySelector(`script[data-lovan-zone="${z.id}"]`)).map((z) => z.id);
 }
+
+/* ------------------------------------------------------------------ */
+/* Player shield                                                       */
+/* ------------------------------------------------------------------ */
+
+let playersOpen = 0;
+let lastShieldedTap = 0;
+
+/** True while a video player is on screen; adverts never open then. */
+export function playbackActive(): boolean {
+  return playersOpen > 0;
+}
+
+/** Call when a player mounts; returns the cleanup to call on unmount. */
+export function enterPlayback(): () => void {
+  playersOpen += 1;
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    playersOpen = Math.max(0, playersOpen - 1);
+  };
+}
+
+/** Decide whether a popup may open given the current time and player state. */
+export function popupBlocked(now: number): boolean {
+  return playbackActive() || now - lastShieldedTap < 1500;
+}
+
+/**
+ * Installed before any advert tag runs. Taps inside the player are noted at
+ * the earliest point, and advert popups or redirects that try to open while a
+ * player is on screen (or right after a player tap) are refused.
+ */
+function installPlayerShield(): void {
+  if (typeof window === "undefined") return;
+  const w = window as Window & { __lovanShield?: boolean };
+  if (w.__lovanShield) return;
+  w.__lovanShield = true;
+  const note = (e: Event) => {
+    const t = e.target as Element | null;
+    if (t && typeof t.closest === "function" && t.closest("[data-no-ads]")) lastShieldedTap = Date.now();
+  };
+  for (const type of ["pointerdown", "mousedown", "touchstart", "click", "pointerup", "mouseup", "touchend"]) {
+    window.addEventListener(type, note, { capture: true, passive: true });
+  }
+  const realOpen = window.open.bind(window);
+  window.open = ((...args: Parameters<typeof window.open>) => {
+    if (popupBlocked(Date.now())) {
+      logAdEvent(MULTITAG_ZONE, "blocked", "Popup refused during playback");
+      return null;
+    }
+    return realOpen(...args);
+  }) as typeof window.open;
+}
+
+installPlayerShield();
