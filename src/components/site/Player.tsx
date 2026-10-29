@@ -16,7 +16,9 @@ type AudioTrackList = { length: number; [i: number]: { label: string; language: 
 
 /** Picture modes run on the viewer's device: no extra data, no buffering. */
 const PICTURE = {
-  normal: { label: "Normal", filter: "none" },
+  hd: { label: "HD Clarity", filter: "url(#lovan-sharpen) contrast(1.06) saturate(1.08)" },
+  ultra: { label: "HD Clarity Max", filter: "url(#lovan-sharpen-max) contrast(1.08) saturate(1.1) brightness(1.02)" },
+  normal: { label: "Original", filter: "none" },
   bright: { label: "Bright boost", filter: "brightness(1.15) contrast(1.05) saturate(1.05)" },
   vivid: { label: "Vivid and crisp", filter: "contrast(1.12) saturate(1.15) brightness(1.04)" },
 } as const;
@@ -57,7 +59,7 @@ export function Player({
   const [audioOpen, setAudioOpen] = useState(false);
   const [audioList, setAudioList] = useState<AudioOption[]>([]);
   const [pictureOpen, setPictureOpen] = useState(false);
-  const [picture, setPicture] = useState<PictureMode>("normal");
+  const [picture, setPicture] = useState<PictureMode>("hd");
   // Controls fade out while playing so the film fills a clean screen; a tap brings them back.
   const [shown, setShown] = useState(true);
   const hideTimer = useRef<number | null>(null);
@@ -244,6 +246,15 @@ export function Player({
       onMouseUp={(e) => e.stopPropagation()}
       className="relative isolate z-40 bg-black"
     >
+      {/* Sharpening filters that make low resolution films look crisper on the viewer's phone. */}
+      <svg aria-hidden="true" width="0" height="0" className="absolute">
+        <filter id="lovan-sharpen">
+          <feConvolveMatrix order="3" preserveAlpha="true" kernelMatrix="0 -0.5 0 -0.5 3 -0.5 0 -0.5 0" />
+        </filter>
+        <filter id="lovan-sharpen-max">
+          <feConvolveMatrix order="3" preserveAlpha="true" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0" />
+        </filter>
+      </svg>
       <div className={full ? "flex h-dvh w-full items-center justify-center bg-black" : "mx-auto aspect-video w-full max-w-[1600px]"}>
         <video
           ref={videoRef}
@@ -328,9 +339,9 @@ export function Player({
             </button>
             <button
               type="button"
-              aria-pressed={picture !== "normal"}
+              aria-pressed={picture !== "normal" && picture !== "hd"}
               onClick={() => { setPictureOpen((v) => !v); setSubOpen(false); setSpeedOpen(false); setAudioOpen(false); }}
-              className={`${chip} ${picture !== "normal" ? "border-primary text-primary" : ""}`}
+              className={`${chip} ${picture !== "normal" && picture !== "hd" ? "border-primary text-primary" : ""}`}
             >
               Picture
             </button>
