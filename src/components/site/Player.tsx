@@ -54,8 +54,8 @@ export function Player({
   const [subOpen, setSubOpen] = useState(false);
   const [subtitle, setSubtitle] = useState<string>("off");
   const [noPicture, setNoPicture] = useState(false);
-  // Fit shows the whole picture; Fill keeps faces in frame; Sub-Safe keeps burned-in subtitles.
-  const [fit, setFit] = useState<"fit" | "fill" | "subsafe">("fit");
+  // Fit shows the whole picture; Full fills the screen while keeping the subtitle zone visible; Stretch fills without cropping.
+  const [fit, setFit] = useState<"fit" | "full" | "stretch">("full");
   const [audioOpen, setAudioOpen] = useState(false);
   const [audioList, setAudioList] = useState<AudioOption[]>([]);
   const [pictureOpen, setPictureOpen] = useState(false);
