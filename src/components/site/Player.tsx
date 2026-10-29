@@ -54,8 +54,8 @@ export function Player({
   const [subOpen, setSubOpen] = useState(false);
   const [subtitle, setSubtitle] = useState<string>("off");
   const [noPicture, setNoPicture] = useState(false);
-  // Fit shows the whole picture; Fill keeps faces in frame; Sub-Safe keeps burned-in subtitles.
-  const [fit, setFit] = useState<"fit" | "fill" | "subsafe">("fit");
+  // Fit shows the whole picture; Full fills the screen while keeping the subtitle zone visible; Stretch fills without cropping.
+  const [fit, setFit] = useState<"fit" | "full" | "stretch">("full");
   const [audioOpen, setAudioOpen] = useState(false);
   const [audioList, setAudioList] = useState<AudioOption[]>([]);
   const [pictureOpen, setPictureOpen] = useState(false);
@@ -295,7 +295,7 @@ export function Player({
             }, 2500);
           }}
           style={{ filter: PICTURE[picture].filter }}
-          className={`h-full w-full bg-black ${fit === "fill" ? "object-cover object-[center_30%]" : fit === "subsafe" ? "object-cover object-[center_75%]" : "object-contain"}`}
+          className={`h-full w-full bg-black ${fit === "full" ? "object-cover object-[center_100%]" : fit === "stretch" ? "object-fill" : "object-contain"}`}
         >
           {tracks.filter((t) => local[t.lang]).map((t) => (
             <track key={t.lang} kind="subtitles" src={local[t.lang]} srcLang={t.lang} label={t.label} />
@@ -351,11 +351,11 @@ export function Player({
             </button>
             <button
               type="button"
-              onClick={() => setFit((v) => (v === "fit" ? "fill" : v === "fill" ? "subsafe" : "fit"))}
+              onClick={() => setFit((v) => (v === "fit" ? "full" : v === "full" ? "stretch" : "fit"))}
               aria-label="Change picture size"
               className={`${chip} ${fit !== "fit" ? "border-primary text-primary" : ""}`}
             >
-              {fit === "fit" ? "Fit" : fit === "fill" ? "Fill" : "Sub-Safe"}
+              {fit === "fit" ? "Fit" : fit === "full" ? "Full" : "Stretch"}
             </button>
             <button type="button" onClick={() => void goFullscreen()} aria-label="Full screen" className={chip}>
               <Maximize2 className="size-4" strokeWidth={1.5} />
