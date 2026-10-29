@@ -351,11 +351,11 @@ export function Player({
             </button>
             <button
               type="button"
-              onClick={() => setFit((v) => (v === "fit" ? "fill" : v === "fill" ? "subsafe" : "fit"))}
+              onClick={() => setFit((v) => (v === "fit" ? "full" : v === "full" ? "stretch" : "fit"))}
               aria-label="Change picture size"
               className={`${chip} ${fit !== "fit" ? "border-primary text-primary" : ""}`}
             >
-              {fit === "fit" ? "Fit" : fit === "fill" ? "Fill" : "Sub-Safe"}
+              {fit === "fit" ? "Fit" : fit === "full" ? "Full" : "Stretch"}
             </button>
             <button type="button" onClick={() => void goFullscreen()} aria-label="Full screen" className={chip}>
               <Maximize2 className="size-4" strokeWidth={1.5} />
