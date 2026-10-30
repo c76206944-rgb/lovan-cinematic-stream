@@ -16,7 +16,7 @@ export function BulkEditBar(props: {
   selected: Set<string>;
   setSelected: (s: Set<string>) => void;
   onDone: (text: string, error: boolean) => void;
-  onDelete?: () => void;
+  onDelete?: (() => void) | undefined;
 }) {
   const run = useServerFn(bulkUpdateTitles);
   const enrich = useServerFn(describeTitle);

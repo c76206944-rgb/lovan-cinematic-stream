@@ -38,8 +38,8 @@ export function Player({
   episodeLabel,
 }: {
   src: string;
-  title?: string;
-  episodeLabel?: string;
+  title?: string | undefined;
+  episodeLabel?: string | undefined;
   tracks?: SubtitleTrack[];
   onExit?: () => void;
   startAt?: number;

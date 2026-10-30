@@ -146,6 +146,7 @@ function CatalogPage() {
       void supabase.from("catalog_titles").select("*").eq("id", search.edit).maybeSingle().then(({ data }) => { if (alive && data) setEditing(data as Row); });
       return () => { alive = false; };
     }
+    return undefined;
   }, [account.staff, editing, rows, search.edit]);
 
   const visible = useMemo(() => rows, [rows]);
@@ -359,7 +360,8 @@ function CatalogPage() {
           <p className={`mt-4 text-sm ${message.error ? "text-primary" : "text-muted-foreground"}`}>{message.text}</p>
         ) : null}
 
-        <BulkEditBar rows={[...rows.filter((r) => r.kind !== "series"), ...seriesRows]} selected={selected} setSelected={setSelected} onDone={(text, error) => { setMessage({ text, error }); void load(); void loadSeries(); }} onDelete={busy ? undefined : () => {
+        <BulkEditBar rows={[...rows.filter((r) => r.kind !== "series"), ...seriesRows]} selected={selected} setSelected={setSelected} onDone={(text, error) => { setMessage({ text, error }); void load(); void loadSeries(); }} onDelete={() => {
+          if (busy) return;
           if (!window.confirm(`Delete ${selected.size} selected titles and their files for good?`)) return;
           void run("bulk-delete", async () => {
             for (const id of selected) {

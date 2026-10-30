@@ -447,6 +447,7 @@ async function uploadToR2(job: Job, path: string): Promise<string> {
       parts.push({ partNumber, etag });
     }
   }
+  if (cancelled) throw new Error("Upload cancelled.");
   await completeR2Upload({ data: { path, uploadId, parts } });
   active.delete(job.id);
   return path;
@@ -460,7 +461,9 @@ async function upload(job: Job): Promise<string> {
   const safe = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+/, "") || "video";
   const path = `videos/${job.id.slice(0, 8)}-${safe}`;
 
-  if (await useR2()) return uploadToR2(job, `r2/${path}`);
+  const r2 = await useR2();
+  if (!jobs.some((j) => j.id === job.id && j.state === "uploading")) throw new Error("Upload cancelled.");
+  if (r2) return uploadToR2(job, `r2/${path}`);
   
   if (USE_SIGNED_UPLOADS) {
     const anonKey = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
@@ -601,6 +604,7 @@ async function run(job: Job) {
       patch(job.id, { videoPath: path, progress: 100 });
     }
 
+    if (!jobs.some((j) => j.id === job.id)) return;
     patch(job.id, { state: "saving", message: "Adding to catalogue" });
     
     // Ensure fresh session token before saving title
