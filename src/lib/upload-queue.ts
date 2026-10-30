@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { restoredUploadState } from "./upload-policy";
 import { loadTus } from "@/lib/tus-browser";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -291,7 +292,24 @@ export function retryAll() {
 }
 
 export function pauseAll() {
-  jobs.filter((j) => j.state === "waiting" || j.state === "uploading").forEach((j) => pauseJob(j.id));
+  const pending = jobs.filter((j) => j.state === "waiting" || j.state === "uploading");
+  for (const job of pending) patch(job.id, { state: "paused", message: "Paused" });
+  for (const job of pending) {
+    void active.get(job.id)?.abort(false);
+    active.delete(job.id);
+  }
+}
+
+/** Clear the queue before aborting so late callbacks cannot restart another job. */
+export function cancelAll() {
+  const previous = jobs;
+  jobs = [];
+  emit();
+  for (const job of previous) {
+    void active.get(job.id)?.abort(true);
+    active.delete(job.id);
+    void unpersist(job.id);
+  }
 }
 
 export function resumeAll() {
@@ -429,6 +447,7 @@ async function uploadToR2(job: Job, path: string): Promise<string> {
       parts.push({ partNumber, etag });
     }
   }
+  if (cancelled) throw new Error("Upload cancelled.");
   await completeR2Upload({ data: { path, uploadId, parts } });
   active.delete(job.id);
   return path;
@@ -442,7 +461,9 @@ async function upload(job: Job): Promise<string> {
   const safe = job.file.name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/^_+/, "") || "video";
   const path = `videos/${job.id.slice(0, 8)}-${safe}`;
 
-  if (await useR2()) return uploadToR2(job, `r2/${path}`);
+  const r2 = await useR2();
+  if (!jobs.some((j) => j.id === job.id && j.state === "uploading")) throw new Error("Upload cancelled.");
+  if (r2) return uploadToR2(job, `r2/${path}`);
   
   if (USE_SIGNED_UPLOADS) {
     const anonKey = (import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || import.meta.env["VITE_SUPABASE_ANON_KEY"] || "") as string;
@@ -583,6 +604,7 @@ async function run(job: Job) {
       patch(job.id, { videoPath: path, progress: 100 });
     }
 
+    if (!jobs.some((j) => j.id === job.id)) return;
     patch(job.id, { state: "saving", message: "Adding to catalogue" });
     
     // Ensure fresh session token before saving title
@@ -683,18 +705,15 @@ if (typeof window !== "undefined") {
     r.onsuccess = () => {
       const all = (r.result as Job[]).filter((s) => !jobs.some((j) => j.id === s.id));
       // Finished uploads are cleared on return so they never show as activity again.
-      all.filter((s) => s.state === "done" || Boolean(s.titleId)).forEach((s) => void unpersist(s.id));
-      const saved = all.filter((s) => s.state !== "done" && !s.titleId);
+      all.filter((s) => restoredUploadState(s.state, s.titleId) === "discard").forEach((s) => void unpersist(s.id));
+      const saved = all.filter((s) => restoredUploadState(s.state, s.titleId) === "paused");
       if (!saved.length) return;
       for (const s of saved) {
-        if (s.state === "uploading" || s.state === "saving") {
-          s.state = "waiting";
-          s.message = "Resuming";
-        }
+        s.state = "paused";
+        s.message = "Paused. Resume when ready.";
         jobs.push(s);
       }
       emit();
-      pump();
     };
   }).catch(() => {});
 }

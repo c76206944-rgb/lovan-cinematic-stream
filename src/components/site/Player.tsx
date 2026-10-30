@@ -34,8 +34,12 @@ export function Player({
   startAt = 0,
   onProgress,
   next,
+  title,
+  episodeLabel,
 }: {
   src: string;
+  title?: string | undefined;
+  episodeLabel?: string | undefined;
   tracks?: SubtitleTrack[];
   onExit?: () => void;
   startAt?: number;
@@ -316,10 +320,13 @@ export function Player({
       ) : null}
 
       <div style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))", paddingLeft: "max(0.5rem, env(safe-area-inset-left))", paddingRight: "max(0.5rem, env(safe-area-inset-right))" }} className={`pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2 transition-opacity duration-300 motion-reduce:transition-none sm:p-3 ${shown || speedOpen || subOpen || audioOpen || pictureOpen ? "opacity-100" : "invisible opacity-0"}`}>
+        <div className="flex min-w-0 max-w-[45%] flex-col items-start gap-1">
         <button type="button" onClick={() => void leave()} className={`pointer-events-auto ${chip}`}>
           <ArrowLeft className="size-4" strokeWidth={1.5} />
           Back
         </button>
+        {title ? <div className="max-w-full rounded-sm bg-background/80 px-2 py-1 text-xs text-foreground"><p className="break-words">{title}</p>{episodeLabel ? <p className="mt-1 font-semibold text-primary">{episodeLabel}</p> : null}</div> : null}
+        </div>
         <div className="pointer-events-auto flex min-w-0 flex-col items-end gap-2">
           <div className="flex flex-wrap justify-end gap-1.5">
             {tracks.length > 0 ? (

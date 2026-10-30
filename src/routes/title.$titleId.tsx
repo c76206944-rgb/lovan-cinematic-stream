@@ -47,7 +47,7 @@ export const Route = createFileRoute("/title/$titleId")({
         { property: "og:description", content: title.synopsis },
         { property: "og:type", content: "video.other" },
         { name: "twitter:card", content: "summary_large_image" },
-        ...(title.image ? [{ property: "og:image", content: title.image }, { name: "twitter:image", content: title.image }] : []),
+        ...(/^https:\/\//.test(title.image || "") ? [{ property: "og:image", content: title.image }, { name: "twitter:image", content: title.image }] : []),
       ],
     };
   },
@@ -185,7 +185,7 @@ function TitleDetails() {
     <div className="pb-16">
       {videoUrl ? (
         <section className="bg-background">
-          <Player src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} startAt={startAt} next={next} onProgress={progressUserId ? (p, d) => void saveProgress(progressUserId, title.id, p, d) : undefined} />
+          <Player title={title.seriesName || title.name} episodeLabel={title.kind === "series" ? `Season ${title.season ?? 1} · Episode ${title.episode ?? 1}` : undefined} src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} startAt={startAt} next={next} onProgress={progressUserId ? (p, d) => void saveProgress(progressUserId, title.id, p, d) : undefined} />
         </section>
       ) : (
       <section className="relative">
@@ -324,7 +324,7 @@ function TitleDetails() {
                         height={60}
                         className="h-15 w-10 shrink-0 rounded-sm border border-border object-cover"
                       />
-                      <span className="min-w-0 truncate">Episode {ep.episode ?? 1}{ep.episodeTitle && ep.episodeTitle !== ep.name ? ` · ${ep.episodeTitle}` : ""}</span>
+                      <span className="min-w-0"><span className="block whitespace-nowrap font-semibold">EP {ep.episode ?? 1}</span>{ep.episodeTitle && ep.episodeTitle !== ep.name ? <span className="block break-words text-xs text-muted-foreground">{ep.episodeTitle}</span> : null}</span>
                     </span>
                     <span className="shrink-0 text-xs text-muted-foreground">{ep.runtime}</span>
                   </Link>

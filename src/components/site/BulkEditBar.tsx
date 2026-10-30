@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { seriesGroups, type SeriesRow } from "@/lib/series-selection";
 import { useServerFn } from "@tanstack/react-start";
 import { bulkUpdateTitles } from "@/lib/catalog.functions";
 import { describeTitle } from "@/lib/metadata.functions";
 
 type Tri = "" | "yes" | "no";
-type RowLite = { id: string; name: string; kind: string; series_name: string };
+type RowLite = SeriesRow & { name: string };
 
 const input = "w-full min-w-0 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus:border-primary";
 
@@ -14,6 +16,7 @@ export function BulkEditBar(props: {
   selected: Set<string>;
   setSelected: (s: Set<string>) => void;
   onDone: (text: string, error: boolean) => void;
+  onDelete?: (() => void) | undefined;
 }) {
   const run = useServerFn(bulkUpdateTitles);
   const enrich = useServerFn(describeTitle);
@@ -24,7 +27,20 @@ export function BulkEditBar(props: {
   const [f, setF] = useState({ series_name: "", season: "", genres: "", country: "", language: "", maturity: "", year: "", premium: "" as Tri, offline: "" as Tri, status: "" });
   const set = (k: keyof typeof f, v: string) => setF((c) => ({ ...c, [k]: v }));
 
-  const seriesNames = Array.from(new Set(props.rows.filter((r) => r.kind === "series" && r.series_name).map((r) => r.series_name))).sort();
+  const [hidePublished, setHidePublished] = useState(true);
+  const [hidden, setHidden] = useState<string[]>([]);
+  const [chosenSeries, setChosenSeries] = useState("");
+  useEffect(() => {
+    try { const saved = JSON.parse(localStorage.getItem("lovan-hidden-series") || "[]"); if (Array.isArray(saved)) setHidden(saved.filter((v): v is string => typeof v === "string")); } catch { /* ignore invalid preferences */ }
+  }, []);
+  const groups = seriesGroups(props.rows);
+  const available = groups.filter((g) => !hidden.includes(g.key) && (!hidePublished || !g.published));
+  const hideChosen = () => {
+    if (!chosenSeries) return;
+    const next = [...hidden, chosenSeries];
+    setHidden(next); setChosenSeries("");
+    try { localStorage.setItem("lovan-hidden-series", JSON.stringify(next)); } catch { /* device storage unavailable */ }
+  };
   const n = props.selected.size;
 
   const suggest = async () => {
@@ -56,7 +72,7 @@ export function BulkEditBar(props: {
 
 
   const toggleSeries = (name: string) => {
-    const ids = props.rows.filter((r) => r.kind === "series" && r.series_name === name).map((r) => r.id);
+    const ids = groups.find((g) => g.key === name)?.ids ?? [];
     const next = new Set(props.selected);
     const all = ids.every((id) => next.has(id));
     ids.forEach((id) => (all ? next.delete(id) : next.add(id)));
@@ -100,21 +116,20 @@ export function BulkEditBar(props: {
         <button type="button" disabled={!n} onClick={() => setOpen(!open)} className="rounded-md bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-50">{open ? "Close editor" : "Edit selected"}</button>
         <button type="button" disabled={!n || aiBusy} onClick={() => void suggest()} className="rounded-md border border-primary px-3 py-1.5 text-primary disabled:opacity-50">{aiBusy ? "Asking AI" : "Suggest with AI"}</button>
         {n ? <button type="button" onClick={() => props.setSelected(new Set())} className="text-muted-foreground">Clear</button> : null}
+        {props.onDelete ? <Button size="sm" variant="destructive" disabled={!n || busy} onClick={props.onDelete}>Delete selected</Button> : null}
         {aiNote ? <span className="text-xs text-muted-foreground">{aiNote}</span> : null}
       </div>
 
-      {seriesNames.length ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="text-xs text-muted-foreground">Select whole series:</span>
-          {seriesNames.map((s) => {
-            const ids = props.rows.filter((r) => r.kind === "series" && r.series_name === s).map((r) => r.id);
-            const on = ids.every((id) => props.selected.has(id));
-            return (
-              <button key={s} type="button" onClick={() => toggleSeries(s)} className={`max-w-full truncate rounded border px-2 py-0.5 text-xs ${on ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>
-                {s} ({ids.length})
-              </button>
-            );
-          })}
+      {groups.length ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <select aria-label="Select whole series" className={`${input} max-w-sm`} value={chosenSeries} onChange={(e) => setChosenSeries(e.target.value)}>
+            <option value="">Select whole series</option>
+            {available.map((g) => <option key={g.key} value={g.key}>{g.name} ({g.ids.length})</option>)}
+          </select>
+          <Button size="sm" variant="outline" disabled={!chosenSeries} onClick={() => toggleSeries(chosenSeries)}>Select / clear</Button>
+          <Button size="sm" variant="ghost" disabled={!chosenSeries} onClick={hideChosen}>Hide name</Button>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={hidePublished} onChange={(e) => { setHidePublished(e.target.checked); setChosenSeries(""); }} />Hide published series</label>
+          {hidden.length ? <Button size="sm" variant="ghost" onClick={() => { setHidden([]); try { localStorage.removeItem("lovan-hidden-series"); } catch { /* ignore */ } }}>Restore hidden names</Button> : null}
         </div>
       ) : null}
       {open && n ? (

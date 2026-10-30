@@ -7,6 +7,7 @@ import { AdminTabs, StaffGate } from "@/components/site/AdminTabs";
 import { BulkEditBar } from "@/components/site/BulkEditBar";
 import { PosterField } from "@/components/site/PosterField";
 import { SubtitleManager } from "@/components/site/SubtitleManager";
+import { Button } from "@/components/ui/button";
 
 import { deleteTitle, postToTelegram, saveTitle, setTitleStatus } from "@/lib/catalog.functions";
 import { describeTitle } from "@/lib/metadata.functions";
@@ -89,6 +90,12 @@ function CatalogPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [seriesRows, setSeriesRows] = useState<Row[]>([]);
+  useEffect(() => { const timer = setTimeout(() => { setSearchQuery(query.trim()); setPage(0); }, 350); return () => clearTimeout(timer); }, [query]);
   const [editing, setEditing] = useState<Row | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -96,20 +103,35 @@ function CatalogPage() {
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
+    let request = supabase.from("catalog_titles").select("*", { count: "exact" })
+      .order("updated_at", { ascending: false }).order("id", { ascending: true });
+    if (filter === "published") request = request.eq("published", true).eq("archived", false);
+    if (filter === "draft") request = request.eq("published", false).eq("archived", false);
+    if (filter === "archived") request = request.eq("archived", true);
+    if (searchQuery) {
+      const pattern = searchQuery.replace(/[%,()\\_]/g, " ");
+      request = request.or(`name.ilike.%${pattern}%,series_name.ilike.%${pattern}%`);
+    }
+    const { data, error, count } = await request.range(page * 50, page * 50 + 49);
+    if (error) setMessage({ text: error.message, error: true });
+    else { setRows((data ?? []) as Row[]); setTotal(count ?? 0); }
+    setLoading(false);
+  }, [page, filter, searchQuery]);
+
+  const loadSeries = useCallback(async () => {
     const all: Row[] = [];
     for (let from = 0; from < 20000; from += 1000) {
-      const { data, error } = await supabase
-        .from("catalog_titles")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .order("id", { ascending: true })
-        .range(from, from + 999);
-      if (error) break;
-      all.push(...((data ?? []) as Row[]));
-      if (!data || data.length < 1000) break;
+      const { data, error } = await supabase.from("catalog_titles")
+        .select("id,name,kind,series_name,published,archived").eq("kind", "series")
+        .order("id").range(from, from + 999);
+      if (error) return;
+      all.push(...(data as Row[]));
+      if (data.length < 1000) break;
     }
-    setRows(all);
+    setSeriesRows(all);
   }, []);
+  useEffect(() => { if (account.staff) void loadSeries(); }, [account.staff, loadSeries]);
 
   useEffect(() => {
     if (account.staff) void load();
@@ -119,18 +141,15 @@ function CatalogPage() {
     if (!search.edit || editing) return;
     const requested = rows.find((row) => row.id === search.edit);
     if (requested) setEditing(requested);
-  }, [editing, rows, search.edit]);
+    else if (account.staff) {
+      let alive = true;
+      void supabase.from("catalog_titles").select("*").eq("id", search.edit).maybeSingle().then(({ data }) => { if (alive && data) setEditing(data as Row); });
+      return () => { alive = false; };
+    }
+    return undefined;
+  }, [account.staff, editing, rows, search.edit]);
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (filter === "published" && !(r.published && !r.archived)) return false;
-      if (filter === "draft" && (r.published || r.archived)) return false;
-      if (filter === "archived" && !r.archived) return false;
-      if (q && !`${r.name} ${r.series_name}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [rows, filter, query]);
+  const visible = useMemo(() => rows, [rows]);
 
   const run = async (id: string, work: () => Promise<unknown>, done: string) => {
     setBusy(id);
@@ -139,6 +158,7 @@ function CatalogPage() {
       await work();
       setMessage({ text: done, error: false });
       await load();
+      void loadSeries();
     } catch (cause) {
       setMessage({ text: cause instanceof Error ? cause.message : "Something went wrong.", error: true });
     } finally {
@@ -326,21 +346,30 @@ function CatalogPage() {
               <button
                 key={f}
                 type="button"
-                onClick={() => setFilter(f)}
+                onClick={() => { setFilter(f); setPage(0); }}
                 className={`rounded px-3 py-1 text-sm capitalize ${filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 {f}
               </button>
             ))}
           </div>
-          <span className="text-sm text-muted-foreground">{visible.length} titles</span>
+          <span className="text-sm text-muted-foreground">{total} titles{loading ? " · Loading" : ""}</span>
         </div>
 
         {message ? (
           <p className={`mt-4 text-sm ${message.error ? "text-primary" : "text-muted-foreground"}`}>{message.text}</p>
         ) : null}
 
-        <BulkEditBar rows={rows} selected={selected} setSelected={setSelected} onDone={(text, error) => { setMessage({ text, error }); void load(); }} />
+        <BulkEditBar rows={[...rows.filter((r) => r.kind !== "series"), ...seriesRows]} selected={selected} setSelected={setSelected} onDone={(text, error) => { setMessage({ text, error }); void load(); void loadSeries(); }} onDelete={() => {
+          if (busy) return;
+          if (!window.confirm(`Delete ${selected.size} selected titles and their files for good?`)) return;
+          void run("bulk-delete", async () => {
+            for (const id of selected) {
+              await remove({ data: { id } });
+              setSelected((cur) => { const next = new Set(cur); next.delete(id); return next; });
+            }
+          }, "Selected titles deleted.");
+        }} />
 
         <div className="mt-4 hidden overflow-x-auto rounded-lg border border-border md:block">
           <table className="w-full text-left text-sm">
@@ -436,11 +465,17 @@ function CatalogPage() {
                 {r.published && !r.archived ? (
                   <ActionButton disabled={busy === r.id} onClick={() => run(r.id, () => tg({ data: { id: r.id } }), "Posted to Telegram.")}>Post to Telegram</ActionButton>
                 ) : null}
+                <ActionButton danger disabled={busy !== null} onClick={() => { if (window.confirm(`Delete "${r.name}" and its files for good?`)) void run(r.id, () => remove({ data: { id: r.id } }), "Deleted."); }}>Delete</ActionButton>
               </div>
             </article>
           ))}
         </div>
 
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+          <span className="text-xs text-muted-foreground">Page {page + 1} of {Math.max(1, Math.ceil(total / 50))}</span>
+          <Button variant="outline" size="sm" disabled={(page + 1) * 50 >= total || loading} onClick={() => setPage((p) => p + 1)}>Next</Button>
+        </div>
         {editing ? (
           <div className="fixed inset-0 z-50 flex justify-end bg-background/80" onClick={closeEdit}>
             <form
