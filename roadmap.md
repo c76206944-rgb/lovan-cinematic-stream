@@ -1,4 +1,7 @@
 # Offline viewing
+- [ ] Stop restored uploads from starting automatically and add immediate queue cancellation.
+- [ ] Compact the series picker, allow hiding published series names and make catalogue browsing lighter.
+- [ ] Show episode numbers in playback and episode lists; verify the changed controls.
 - [x] Fix the blank offline screen with an explicit mount function; eight regression tests pass and standalone saved-video playback works with the connection disabled. Published cold reopening remains below.
 - [x] Correct the offline entry build configuration causing the app manifest failure; retain one Start entry and test static shell emission.
 - [x] Enable downloads for every published title with an uploaded video.
