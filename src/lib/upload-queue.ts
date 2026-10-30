@@ -349,7 +349,21 @@ function useR2() {
   return r2Check;
 }
 
-const R2_PART = 25 * 1024 * 1024;
+// Small 5 MB pieces (R2 minimum) so a dropped mobile connection only loses a few seconds of work.
+const R2_PART = 5 * 1024 * 1024;
+const R2_MAX_ATTEMPTS = 40;
+const R2_RETRY_DELAYS = [1000, 2000, 4000, 8000, 15000, 30000];
+
+/** Waits the delay, then keeps waiting until the device reports it is back online. */
+async function waitForConnection(delay: number, isCancelled: () => boolean) {
+  await new Promise((r) => setTimeout(r, delay));
+  while (typeof navigator !== "undefined" && navigator.onLine === false && !isCancelled()) {
+    await new Promise<void>((r) => {
+      const t = setTimeout(r, 5000);
+      window.addEventListener("online", () => { clearTimeout(t); r(); }, { once: true });
+    });
+  }
+}
 
 function putPart(url: string, blob: Blob, onProgress: (sent: number) => void, register: (xhr: XMLHttpRequest) => void) {
   return new Promise<string>((resolve, reject) => {
@@ -388,7 +402,9 @@ async function uploadToR2(job: Job, path: string): Promise<string> {
   for (let start = 1; start <= count; start += 20) {
     const nums = Array.from({ length: Math.min(20, count - start + 1) }, (_, i) => start + i);
     const { urls } = await signR2Parts({ data: { path, uploadId, partNumbers: nums } });
-    for (const { partNumber, url } of urls) {
+    for (const signedPart of urls) {
+      const { partNumber } = signedPart;
+      let url = signedPart.url;
       const blob = file.slice((partNumber - 1) * R2_PART, Math.min(partNumber * R2_PART, file.size));
       let etag = "";
       for (let attempt = 0; ; attempt += 1) {
@@ -398,8 +414,15 @@ async function uploadToR2(job: Job, path: string): Promise<string> {
           break;
         } catch (err) {
           done[partNumber] = 0;
-          if (cancelled || attempt >= 5 || /CORS/.test(String(err))) throw err;
-          await new Promise((r) => setTimeout(r, [1000, 3000, 8000, 15000, 30000][attempt]));
+          report();
+          if (cancelled || attempt >= R2_MAX_ATTEMPTS || /CORS/.test(String(err))) throw err;
+          await waitForConnection(R2_RETRY_DELAYS[Math.min(attempt, R2_RETRY_DELAYS.length - 1)], () => cancelled);
+          // Signed links can expire during long outages, so fetch a fresh one.
+          try {
+            await getValidSessionToken();
+            const fresh = await signR2Parts({ data: { path, uploadId, partNumbers: [partNumber] } });
+            if (fresh.urls[0]?.url) url = fresh.urls[0].url;
+          } catch { /* keep the old link and try again */ }
         }
       }
       done[partNumber] = blob.size;
