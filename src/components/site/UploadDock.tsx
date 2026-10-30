@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useJobs, retryAll, queueStorage, freeFinishedFiles, enableBrowserNotifications, notificationsSupported, getAlertPrefs, setAlertPrefs, type AlertPrefs, type AlertEvent } from "@/lib/upload-queue";
+import { Button } from "@/components/ui/button";
+import { X, Pause, Play } from "lucide-react";
+import { useJobs, retryAll, cancelAll, cancelJob, pauseAll, resumeAll, resumeJob, queueStorage, freeFinishedFiles, enableBrowserNotifications, notificationsSupported, getAlertPrefs, setAlertPrefs, type AlertPrefs, type AlertEvent } from "@/lib/upload-queue";
 
 const size = (b: number) => (b >= 1e9 ? `${(b / 1e9).toFixed(2)} GB` : b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} KB`);
 
@@ -26,17 +28,23 @@ export function UploadDock() {
   if (jobs.length === 0) return null;
   const active = jobs.filter((j) => j.state === "waiting" || j.state === "uploading" || j.state === "saving").length;
   const failed = jobs.filter((j) => j.state === "failed").length;
+  const paused = jobs.filter((j) => j.state === "paused").length;
   const used = queueStorage(jobs);
   const avg = Math.round(jobs.reduce((s, j) => s + (j.state === "done" ? 100 : j.progress), 0) / jobs.length);
   return (
     <div className="fixed right-3 z-50 w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-border bg-card text-sm bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-[calc(1rem+env(safe-area-inset-bottom))]">
       <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left">
         <span className="truncate">
-          {active ? `Uploading ${active} of ${jobs.length}` : "Uploads finished"}
+          {active ? `Uploading ${active} of ${jobs.length}` : paused ? `${paused} uploads paused` : failed ? "Uploads need attention" : "Uploads finished"}
           {failed ? `, ${failed} need retry` : ""}
         </span>
         <span className="shrink-0 text-muted-foreground">{avg}%</span>
       </button>
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2">
+        {active ? <Button size="sm" variant="outline" onClick={pauseAll}><Pause />Pause all</Button> : null}
+        {paused ? <Button size="sm" variant="outline" onClick={resumeAll}><Play />Resume all</Button> : null}
+        <Button size="sm" variant="destructive" onClick={cancelAll}><X />Cancel all</Button>
+      </div>
       <div className="h-1 bg-muted">
         <div className="h-1 bg-primary transition-all" style={{ width: `${avg}%` }} />
       </div>
@@ -49,6 +57,8 @@ export function UploadDock() {
                 <p className={`truncate text-xs ${j.state === "failed" ? "text-destructive" : "text-muted-foreground"}`}>{j.message}</p>
               </div>
               <span className="shrink-0 text-xs text-muted-foreground">{j.state === "done" ? 100 : j.progress}%</span>
+              {j.state === "paused" || j.state === "failed" ? <Button size="icon" variant="ghost" aria-label={`Resume ${j.name}`} title="Resume upload" onClick={() => resumeJob(j.id)}><Play /></Button> : null}
+              <Button size="icon" variant="ghost" aria-label={`Remove ${j.name}`} title="Remove from queue" onClick={() => cancelJob(j.id)}><X /></Button>
               {j.state === "done" && j.titleId ? (
                 <Link to="/admin/catalog" search={{ edit: j.titleId }} className="shrink-0 text-xs text-primary">Edit</Link>
               ) : null}
