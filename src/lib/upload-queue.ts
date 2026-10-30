@@ -416,7 +416,7 @@ async function uploadToR2(job: Job, path: string): Promise<string> {
           done[partNumber] = 0;
           report();
           if (cancelled || attempt >= R2_MAX_ATTEMPTS || /CORS/.test(String(err))) throw err;
-          await waitForConnection(R2_RETRY_DELAYS[Math.min(attempt, R2_RETRY_DELAYS.length - 1)], () => cancelled);
+          await waitForConnection(R2_RETRY_DELAYS[Math.min(attempt, R2_RETRY_DELAYS.length - 1)] ?? 30000, () => cancelled);
           // Signed links can expire during long outages, so fetch a fresh one.
           try {
             await getValidSessionToken();
