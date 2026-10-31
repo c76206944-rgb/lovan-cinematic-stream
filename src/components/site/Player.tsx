@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Gauge, Maximize2, Subtitles } from "lucide-react";
 import { enterPlayback } from "@/lib/ads";
+import { WatermarkShield } from "@/components/site/WatermarkShield";
 
 type OrientationLock = { lock?: (o: string) => Promise<void>; unlock?: () => void };
 type FullscreenVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
