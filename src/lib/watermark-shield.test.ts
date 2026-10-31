@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shieldRect } from "@/components/site/WatermarkShield";
+import { shieldRect } from "../components/site/WatermarkShield";
 
 describe("watermark shield", () => {
   it("covers the top-right corner of a fitted 16:9 picture", () => {
