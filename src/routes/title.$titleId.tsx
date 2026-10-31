@@ -136,10 +136,11 @@ function TitleDetails() {
   const list = useWatchlist();
   const saved = list.ids.includes(title.id);
   useEffect(() => { setVideoUrl(null); setPlayMsg(null); setTracks([]); }, [title.id]);
-  const episodes = title.kind === "series"
+  const liveEpisodes = title.kind === "series"
     ? titles.filter((t) => t.kind === "series" && t.seriesName.toLowerCase() === title.seriesName.toLowerCase())
         .sort((a, b) => (a.season ?? 0) - (b.season ?? 0) || (a.episode ?? 0) - (b.episode ?? 0))
     : [];
+  const episodes = liveEpisodes.length >= seriesEpisodes.length ? liveEpisodes : seriesEpisodes;
   const seriesImage = title.image || episodes.find((e) => e.image)?.image || "";
   const seasons = [...new Set(episodes.map((e) => e.season ?? 1))].sort((a, b) => a - b);
   const [season, setSeason] = useState<number>(title.season ?? 1);
