@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Gauge, Maximize2, Subtitles } from "lucide-react";
 import { enterPlayback } from "@/lib/ads";
+import { WatermarkShield } from "@/components/site/WatermarkShield";
 
 type OrientationLock = { lock?: (o: string) => Promise<void>; unlock?: () => void };
 type FullscreenVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
@@ -259,7 +260,7 @@ export function Player({
           <feConvolveMatrix order="3" preserveAlpha="true" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0" />
         </filter>
       </svg>
-      <div className={full ? "flex h-dvh w-full items-center justify-center bg-black" : "mx-auto aspect-video w-full max-w-[1600px]"}>
+      <div className={`relative overflow-hidden ${full ? "flex h-dvh w-full items-center justify-center bg-black" : "mx-auto aspect-video w-full max-w-[1600px]"}`}>
         <video
           ref={videoRef}
           src={src}
@@ -305,6 +306,7 @@ export function Player({
             <track key={t.lang} kind="subtitles" src={local[t.lang]} srcLang={t.lang} label={t.label} />
           ))}
         </video>
+        <WatermarkShield videoRef={videoRef} fit={fit} />
       </div>
       {next && remaining !== null && !skipNext ? (
         <div className="absolute bottom-16 right-3 z-10 flex items-center gap-3 rounded-md border border-primary bg-background/90 p-3 text-xs text-foreground">
