@@ -27,12 +27,18 @@ function formatSize(bytes: number): string {
 type ViewTitle = Title;
 
 export const Route = createFileRoute("/title/$titleId")({
-  loader: async ({ params, context }): Promise<{ title: ViewTitle }> => {
+  loader: async ({ params, context }): Promise<{ title: ViewTitle; seriesEpisodes: ViewTitle[] }> => {
     const all = await context.queryClient.ensureQueryData(catalogQuery);
     const key = params.titleId.toLowerCase();
-    const title = all.find((t) => t.id === params.titleId) ?? all.find((t) => slugify(t.name) === key);
+    const byOrder = (a: ViewTitle, b: ViewTitle) => (a.season ?? 0) - (b.season ?? 0) || (a.episode ?? 0) - (b.episode ?? 0);
+    // A shared series link (by name) opens the first episode.
+    const title = all.find((t) => t.id === params.titleId) ?? all.filter((t) => slugify(t.name) === key).sort(byOrder)[0];
     if (!title) throw notFound();
-    return { title };
+    // Episodes travel with the page so the full list shows even before the catalogue reloads on the phone.
+    const seriesEpisodes = title.kind === "series"
+      ? all.filter((t) => t.kind === "series" && t.seriesName.toLowerCase() === title.seriesName.toLowerCase()).sort(byOrder)
+      : [];
+    return { title, seriesEpisodes };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -117,8 +123,9 @@ function DownloadButton({ title }: { title: ViewTitle }) {
 }
 
 function TitleDetails() {
-  const { title } = Route.useLoaderData();
-  const { titles } = useCatalog();
+  const { title, seriesEpisodes } = Route.useLoaderData();
+  const { titles: liveTitles } = useCatalog();
+  const titles = liveTitles.length ? liveTitles : seriesEpisodes;
   const play = useServerFn(getPlaybackUrl);
   const loadTracks = useServerFn(getSubtitleTracks);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
