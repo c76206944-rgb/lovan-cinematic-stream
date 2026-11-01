@@ -55,7 +55,7 @@ function ForYouPage() {
       setIntro(result.intro);
       setPicks(result.picks);
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : "The suggestions could not be loaded. Please try again in a moment.");
+      setError(e instanceof Error && /unauthor|401|sign/i.test(e.message) ? "Please sign in to get suggestions." : e instanceof Error && e.message ? e.message : "The suggestions could not be loaded. Please try again in a moment.");
     } finally {
       setLoading(false);
     }
