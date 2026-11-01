@@ -11,7 +11,7 @@ async function sha(text: string) {
   return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
 }
 async function sign(text: string) {
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_URL || "lovan";
+  const secret = process.env["SUPABASE_SERVICE_ROLE_KEY"] || process.env["SUPABASE_URL"] || "lovan";
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return hex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`kids:${text}`)));
 }
