@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { lockKidsMode, unlockKidsMode } from "@/lib/kids-lock.functions";
 import { clearAdsForKids } from "@/lib/ads";
 import { enterKidsMode, exitKidsMode, useKidsMode } from "@/lib/kids-mode";
 
@@ -10,12 +11,14 @@ export function KidsModeButton() {
   const [error, setError] = useState<string | null>(null);
 
   const close = () => { setOpen(false); setPin(""); setError(null); };
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^\d{4}$/.test(pin)) return setError("Enter 4 digits.");
     if (kids) {
-      if (!exitKidsMode(pin)) return setError("Wrong PIN.");
+      const res = await unlockKidsMode({ data: { pin } }).catch(() => ({ ok: false }));
+      if (!res.ok || !exitKidsMode(pin)) return setError("Wrong PIN.");
     } else {
+      await lockKidsMode({ data: { pin } }).catch(() => null);
       enterKidsMode(pin);
       clearAdsForKids();
     }

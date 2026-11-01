@@ -95,17 +95,23 @@ export const getPlaybackUrl = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data: row } = await supabaseAdmin
         .from("catalog_titles")
-        .select("video_path, published, archived")
+        .select("video_path, published, archived, genres, maturity")
         .eq("id", data.id)
         .maybeSingle();
       if (!row || !row.published || row.archived || !row.video_path) throw new Error("This title cannot be played yet.");
+      // Kids Mode is enforced here, not only in the browser.
+      const { readKidsLock } = await import("./kids-lock.functions");
+      if (await readKidsLock()) {
+        const { isKidsTitle } = await import("./kids-mode");
+        if (!isKidsTitle({ genres: row.genres ?? [], maturity: row.maturity ?? "" })) throw new Error("Not available in Kids Mode.");
+      }
       // Free open films are hosted by their makers and stream straight from there.
       if (/^https:\/\//.test(row.video_path)) return { url: row.video_path };
     if (row.video_path.startsWith("r2/")) {
       const r2 = await import("./r2.server");
-      return { url: await r2.presign("GET", r2.r2Key(row.video_path), 60 * 60 * 3) };
+      return { url: await r2.presign("GET", r2.r2Key(row.video_path), 60 * 20) };
     }
-      const { data: s, error } = await supabaseAdmin.storage.from("media").createSignedUrl(row.video_path, 60 * 60 * 3);
+      const { data: s, error } = await supabaseAdmin.storage.from("media").createSignedUrl(row.video_path, 60 * 20);
       if (error || !s) throw new Error("Could not start playback.");
       return { url: s.signedUrl };
     } catch (err) {
