@@ -3,6 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, Output } from "ai";
 import { z } from "zod";
 import { getCatalog } from "@/lib/public-catalog.functions";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const Input = z.object({ query: z.string().min(3).max(600) });
 
@@ -17,6 +18,7 @@ const Result = z.object({
 });
 
 export const recommendTitles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data }) => {
     const titles = await getCatalog();
