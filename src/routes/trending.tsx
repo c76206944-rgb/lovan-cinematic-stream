@@ -24,7 +24,7 @@ function TrendingPage() {
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
       <PageHeading
-        title="Trending"
+        title="Trending films and series on LOVAN"
         description="What audiences are watching most this week, across every region where rights allow."
       />
       <TitleGrid items={items} />
