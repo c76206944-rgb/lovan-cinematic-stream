@@ -32,6 +32,7 @@ export function Player({
   src,
   tracks = NO_TRACKS,
   onExit,
+  onLinkExpired,
   startAt = 0,
   onProgress,
   next,
@@ -43,6 +44,8 @@ export function Player({
   episodeLabel?: string | undefined;
   tracks?: SubtitleTrack[];
   onExit?: () => void;
+  /** Called when the short-lived link stops working, with the current position. */
+  onLinkExpired?: (position: number) => void;
   startAt?: number;
   onProgress?: ((position: number, duration: number) => void) | undefined;
   /** Next episode, offered in the last minute and played when this one ends. */
@@ -270,6 +273,7 @@ export function Player({
           preload="auto"
           controlsList="nodownload nofullscreen"
           onContextMenu={(e) => e.preventDefault()}
+          onError={(e) => onLinkExpired?.(e.currentTarget.currentTime || 0)}
           onLoadedMetadata={(e) => {
             setNoPicture(e.currentTarget.videoWidth === 0);
             if (startAt > 0) e.currentTarget.currentTime = startAt;

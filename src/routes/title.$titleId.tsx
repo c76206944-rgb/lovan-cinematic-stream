@@ -132,6 +132,7 @@ function TitleDetails() {
   const [tracks, setTracks] = useState<{ lang: string; label: string; url: string }[]>([]);
   const [playMsg, setPlayMsg] = useState<string | null>(null);
   const [startAt, setStartAt] = useState(0);
+  const lastRefresh = useRef(0);
   const account = useAccount();
   const list = useWatchlist();
   const saved = list.ids.includes(title.id);
@@ -193,7 +194,11 @@ function TitleDetails() {
     <div className="pb-16">
       {videoUrl ? (
         <section className="bg-background">
-          <Player title={title.seriesName || title.name} episodeLabel={title.kind === "series" ? `Season ${title.season ?? 1} · Episode ${title.episode ?? 1}` : undefined} src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} startAt={startAt} next={next} onProgress={progressUserId ? (p, d) => void saveProgress(progressUserId, title.id, p, d) : undefined} />
+          <Player title={title.seriesName || title.name} episodeLabel={title.kind === "series" ? `Season ${title.season ?? 1} · Episode ${title.episode ?? 1}` : undefined} src={videoUrl} tracks={tracks} onExit={() => setVideoUrl(null)} onLinkExpired={(pos) => {
+            if (Date.now() - lastRefresh.current < 15000) return;
+            lastRefresh.current = Date.now();
+            void play({ data: { id: title.id } }).then(({ url }) => { setStartAt(pos); setVideoUrl(url); }).catch(() => null);
+          }} startAt={startAt} next={next} onProgress={progressUserId ? (p, d) => void saveProgress(progressUserId, title.id, p, d) : undefined} />
         </section>
       ) : (
       <section className="relative">
