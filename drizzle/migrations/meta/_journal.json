@@ -85,6 +85,13 @@
       "when": 1792438643821,
       "tag": "0011_site_announcements",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793564780057,
+      "tag": "0012_claim_owner_requires_confirmed_email",
+      "breakpoints": true
     }
   ]
 }

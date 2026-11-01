@@ -8,7 +8,7 @@ const Input = z.object({
   name: z.string().min(1).max(200),
   kind: z.string().min(1).max(40),
   notes: z.string().max(4000),
-  outputLanguage: z.string().trim().min(2).max(60).default("English"),
+  outputLanguage: z.string().trim().min(2).max(40).regex(/^[\p{L} ()-]+$/u, "Choose a language name.").default("English"),
 });
 
 const Level = z.enum(["high", "medium", "low"]);
