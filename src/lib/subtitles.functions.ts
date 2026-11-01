@@ -36,6 +36,20 @@ export const getSubtitleTracks = createServerFn({ method: "POST" })
       .filter((t) => Boolean(t.url));
   });
 
+/** Only plain public web addresses: no local, private or raw internal hosts. */
+function isSafePublicUrl(value: string) {
+  let url: URL;
+  try { url = new URL(value); } catch { return false; }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+  if (url.username || url.password) return false;
+  if (url.port && url.port !== "80" && url.port !== "443") return false;
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host.includes(".") || host.includes(":")) return false;
+  if (/^(localhost|.*\.localhost|.*\.local|.*\.internal|metadata\.google\.internal)$/.test(host)) return false;
+  if (/^\d+(\.\d+){3}$/.test(host)) return false;
+  return true;
+}
+
 async function requireStaff(context: { supabase: unknown; userId: string }) {
   const client = context.supabase as {
     rpc: (n: string, a: Record<string, unknown>) => PromiseLike<{ data: unknown }>;
@@ -195,7 +209,11 @@ export const importPosterFromUrl = createServerFn({ method: "POST" })
 
     for (const candidate of upgradePosterUrl(data.url)) {
       try {
-        const response = await fetch(candidate);
+        if (!isSafePublicUrl(candidate)) {
+          lastError = "That picture link is not allowed.";
+          continue;
+        }
+        const response = await fetch(candidate, { redirect: "error" });
         if (!response.ok) continue;
         const type = response.headers.get("content-type") ?? "image/jpeg";
         if (!type.startsWith("image/")) {
