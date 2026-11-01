@@ -87,9 +87,9 @@ function RequestsPage() {
               </button>
             ))}
           </div>
-          <input required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} placeholder="Title name" className={input} />
-          <input maxLength={4} inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, ""))} placeholder="Year (optional)" className={input} />
-          <textarea maxLength={1000} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything that helps us find it (optional)" className={input} />
+          <input required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} placeholder="Title name" aria-label="Title name" className={input} />
+          <input maxLength={4} inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value.replace(/\D/g, ""))} placeholder="Year (optional)" aria-label="Release year (optional)" className={input} />
+          <textarea maxLength={1000} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything that helps us find it (optional)" aria-label="Notes (optional)" className={input} />
           {msg ? <p className="text-sm text-muted-foreground">{msg}</p> : null}
           <button type="submit" disabled={busy} className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50">
             {busy ? "Sending" : "Send request"}

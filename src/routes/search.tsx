@@ -35,6 +35,8 @@ function SearchPage() {
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search LOVAN"
+        aria-label="Search films and series"
+        type="search"
         className="mb-8 w-full max-w-xl rounded-md border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground"
       />
       <TitleGrid items={items} />

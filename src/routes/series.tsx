@@ -27,7 +27,7 @@ function SeriesPage() {
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-12 sm:px-6">
       <PageHeading
-        title="Series"
+        title="TV series and K-dramas to binge free"
         description="Episodic and limited series, with audio and subtitle options listed on each title page."
       />
       <TitleGrid items={items} />
