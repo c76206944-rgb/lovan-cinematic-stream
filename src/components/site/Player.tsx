@@ -268,7 +268,7 @@ export function Player({
           autoPlay
           playsInline
           preload="auto"
-          controlsList="nodownload"
+          controlsList="nodownload nofullscreen"
           onContextMenu={(e) => e.preventDefault()}
           onLoadedMetadata={(e) => {
             setNoPicture(e.currentTarget.videoWidth === 0);

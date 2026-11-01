@@ -3,7 +3,7 @@ import { useEffect, useState, type RefObject } from "react";
 type Fit = "fit" | "full" | "stretch";
 
 /** Where the KissKH-style corner mark sits, as a share of the picture. */
-export const SHIELD_ZONE = { left: 0.8, top: 0, width: 0.13, height: 0.075 };
+export const SHIELD_ZONE = { left: 0.74, top: 0, width: 0.26, height: 0.1 };
 
 /** Position of the shield in element pixels, given the picture size and fit mode. */
 export function shieldRect(W: number, H: number, vw: number, vh: number, fit: Fit) {
@@ -17,12 +17,12 @@ export function shieldRect(W: number, H: number, vw: number, vh: number, fit: Fi
     ox = (W - vw * s) / 2;
     oy = fit === "full" ? H - vh * s : (H - vh * s) / 2;
   }
-  return {
-    left: ox + SHIELD_ZONE.left * vw * sx,
-    top: oy + SHIELD_ZONE.top * vh * sy,
-    width: SHIELD_ZONE.width * vw * sx,
-    height: SHIELD_ZONE.height * vh * sy,
-  };
+  const left = Math.max(0, ox + SHIELD_ZONE.left * vw * sx);
+  const top = Math.max(0, oy + SHIELD_ZONE.top * vh * sy);
+  const right = Math.min(W, ox + (SHIELD_ZONE.left + SHIELD_ZONE.width) * vw * sx);
+  const bottom = Math.min(H, oy + (SHIELD_ZONE.top + SHIELD_ZONE.height) * vh * sy);
+  if (right <= left || bottom <= top) return null;
+  return { left, top, width: right - left, height: bottom - top };
 }
 
 export function WatermarkShield({ videoRef, fit }: { videoRef: RefObject<HTMLVideoElement | null>; fit: Fit }) {
