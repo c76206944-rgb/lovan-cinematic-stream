@@ -1,5 +1,5 @@
 # Offline viewing
-- [ ] Transfer remaining Lovable Cloud catalogue videos to Cloudflare R2; verify copies and playback before source cleanup.
+- [ ] Finish the authorised full video transfer to Cloudflare R2: 325 titles (25.39 GB) copied, size/range verified, catalogue switched, and originals removed; 845 catalogue titles remain on Cloud (147.41 GB), including four external links excluded from storage copying. Transfer stopped at the bounded session limit; no background transfer is running.
 - [x] Stop restored uploads from starting automatically and add immediate queue cancellation.
 - [x] Compact the series picker, allow hiding published series names and make catalogue browsing lighter.
 - [x] Show episode numbers in playback and episode lists; verify the changed controls.
