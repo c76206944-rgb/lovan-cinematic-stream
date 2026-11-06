@@ -1,4 +1,5 @@
 # Offline viewing
+- [ ] Transfer remaining Lovable Cloud catalogue videos to Cloudflare R2; verify copies and playback before source cleanup.
 - [x] Stop restored uploads from starting automatically and add immediate queue cancellation.
 - [x] Compact the series picker, allow hiding published series names and make catalogue browsing lighter.
 - [x] Show episode numbers in playback and episode lists; verify the changed controls.
