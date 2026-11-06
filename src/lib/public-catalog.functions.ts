@@ -100,7 +100,7 @@ export const getPlaybackUrl = createServerFn({ method: "POST" })
         .maybeSingle();
       if (!row || !row.published || row.archived || !row.video_path) throw new Error("This title cannot be played yet.");
       // Kids Mode is enforced here, not only in the browser.
-      const { readKidsLock } = await import("./kids-lock.functions");
+      const { readKidsLock } = await import("./kids-lock.server");
       if (await readKidsLock()) {
         const { isKidsTitle } = await import("./kids-mode");
         if (!isKidsTitle({ genres: row.genres ?? [], maturity: row.maturity ?? "" })) throw new Error("Not available in Kids Mode.");
